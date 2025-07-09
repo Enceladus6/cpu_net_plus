@@ -367,3 +367,5 @@ FodyWeavers.xsd
 
 obj/
 Properties/
+.vs/
+.git/
