@@ -59,7 +59,7 @@
                                          vm:LoginPasswordBoxHelper.IsPasswordBindingEnable="True"
                                          vm:LoginPasswordBoxHelper.Password="{Binding Path=Password, Source={StaticResource userVM}, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
                             <TextBox Grid.Row="2" Grid.Column="0" Text="运营商:" Background="White" BorderThickness="0" FontSize="20" IsReadOnly="True"/>
-                            <ComboBox Grid.Row="2" Grid.Column="1" Name="carrier" Width="250" FontSize="20" PreviewTextInput="Code_PreviewTextInput" InputMethod.IsInputMethodEnabled="False"
+                            <ComboBox Grid.Row="2" Grid.Column="1" Name="carrier" Width="250" FontSize="20" InputMethod.IsInputMethodEnabled="False"
                                       ItemsSource="{Binding Path=ComboxList,Mode=TwoWay,Source={StaticResource carrierVM}}" SelectedItem="{Binding Path=ComboxItem,Mode=TwoWay,Source={StaticResource carrierVM}}" DisplayMemberPath="Text" SelectedValuePath="Key">
                                 <!--ComboBoxItem Name="cmcc">移动</ComboBoxItem-->
                                 <!--ComboBoxItem Name="unicom">联通</ComboBoxItem-->
@@ -92,11 +92,12 @@
                         <RowDefinition Height="*"/>
                         <RowDefinition Height="40"/>
                     </Grid.RowDefinitions>
-                    <Grid Grid.ColumnSpan="2" HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <Grid Grid.ColumnSpan="2" VerticalAlignment="Center" Margin="0,0,0,0" HorizontalAlignment="Center" Width="520">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="300"/>
-                            <ColumnDefinition Width="2*" MinWidth="120"/>
+                            <ColumnDefinition Width="220"/>
+                            <ColumnDefinition Width="180"/>
+                            <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
                         <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
                             <Label HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="15">登录模式:</Label>
@@ -104,6 +105,16 @@
                             <RadioButton Name="cpu" GroupName="Mode" VerticalAlignment="Center" HorizontalAlignment="Center" Command="{Binding Path=CpuButton_Click,Source={StaticResource userVM}}">CPU</RadioButton>
                             <RadioButton Name="auto" GroupName="Mode" VerticalAlignment="Center" HorizontalAlignment="Center" Command="{Binding Path=AutoButton_Click,Source={StaticResource userVM}}">自动</RadioButton>
                         </StackPanel>
+                        <Grid Grid.Column="2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="70"/>
+                                <ColumnDefinition Width="75"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox Grid.Row="0" Grid.Column="0" Text="定时时长:" Background="White" BorderThickness="0" FontSize="15" IsReadOnly="True" VerticalAlignment="Center" />
+                            <TextBox Grid.Row="0" Grid.Column="1" Name="loginTime" Width="75" Height="25" FontSize="15" PreviewTextInput="Code_PreviewTextInput" InputMethod.IsInputMethodEnabled="False" Text="{Binding Path=LoginTime, Source={StaticResource userVM}}"/>
+                            <TextBox Grid.Row="0" Grid.Column="2" Text="小时" Background="White" BorderThickness="0" FontSize="15" IsReadOnly="True" VerticalAlignment="Center" />
+                        </Grid>
                     </Grid>
                     <TextBlock Grid.Row="1" Grid.ColumnSpan="2" HorizontalAlignment="Center" VerticalAlignment="Center" Block.TextAlignment="Center">
                         <TextBox Background="White" BorderThickness="0" FontSize="16" IsReadOnly="True" HorizontalAlignment="Center" >在宿舍登录模式请选择宽带，在宿舍外请选择CPU</TextBox>

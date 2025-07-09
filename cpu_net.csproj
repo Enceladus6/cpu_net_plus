@@ -14,7 +14,7 @@
     <BaseOutputPath>D:\py\cpu_net\workingspace\bin</BaseOutputPath>
     <BaseIntermediateOutputPath>D:\py\cpu_net\workingspace\obj</BaseIntermediateOutputPath>
     <IsPublishable>True</IsPublishable>
-    <FileVersion>2.1.0</FileVersion>
+    <FileVersion>3.2.0b</FileVersion>
     <IncludeSymbols>False</IncludeSymbols>
     <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
@@ -27,6 +27,13 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <DebugType>embedded</DebugType>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="obj\**" />
+    <EmbeddedResource Remove="obj\**" />
+    <None Remove="obj\**" />
+    <Page Remove="obj\**" />
+  </ItemGroup>
 
   <ItemGroup>
     <None Remove="shinnku.jpg" />

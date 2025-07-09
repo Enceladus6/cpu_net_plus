@@ -53,7 +53,15 @@ namespace cpu_net
         public void TimerMain()
         {
             //Debug.WriteLine("action3");
-            timer = new Timer(LoginCheck, "", 21600000, 21600000);
+            SettingModel settingData = new SettingModel();
+            int loginTime = 6 * 60 * 60 * 1000;
+            //Debug.WriteLine("action4");
+            if (settingData.PathExist())
+            {
+                settingData = settingData.Read();
+                loginTime = settingData.LoginTime * 60 * 60 * 1000;
+            }
+            timer = new Timer(LoginCheck, "", loginTime, loginTime);
             //timer = new Timer(LoginCheck, mainViewModel, 3000, 21600000);
             //timer.Dispose();
         }

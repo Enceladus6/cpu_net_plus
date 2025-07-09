@@ -54,10 +54,12 @@ namespace cpu_net.Views.Pages
                     default:
                         ppp.IsChecked = true; break;
                 }
+                loginTime.Text = settingData.LoginTime.ToString();
             }
             else
             {
                 ppp.IsChecked = true;
+                loginTime.Text = "6";
             }
         }
 
@@ -74,6 +76,7 @@ namespace cpu_net.Views.Pages
                 settingData = settingData.Read();
                 code.Text = settingData.Username;
                 secret.Password = settingData.Password;
+                loginTime.Text = settingData.LoginTime.ToString();
                 AutoRun.IsChecked = settingData.IsAutoRun;
                 AutoLogin.IsChecked = settingData.IsAutoLogin;
                 AutoMin.IsChecked = settingData.IsAutoMin;
@@ -129,6 +132,7 @@ namespace cpu_net.Views.Pages
                 ppp.IsChecked = true;
                 cpu.IsChecked = false;
                 auto.IsChecked = false;
+                loginTime.Text = "6";
             }
         }
 
@@ -225,6 +229,7 @@ namespace cpu_net.Views.Pages
                 settingData.Password = secret.Password;
                 settingData.Carrier = Carrier;
                 settingData.Key = Key;
+                settingData.LoginTime = int.Parse(loginTime.Text);
                 settingData.Save();
                 var result = MessageBox.Show("保存成功", "Info");
                 if (result == MessageBoxResult.OK)

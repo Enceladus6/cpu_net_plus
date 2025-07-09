@@ -22,6 +22,7 @@ namespace cpu_net.Model
         private bool _IsAutoLogin;
         private bool _IsAutoMin;
         private bool _IsSetLogin;
+        private int _LoginTime;
         ///private string _ServerAddress;
 
         //SettingDataPath exist
@@ -128,6 +129,16 @@ namespace cpu_net.Model
                 SetProperty(ref _IsSetLogin, value);
             }
         }
+        public int LoginTime
+        {
+            get {
+                return _LoginTime; 
+            }
+            set
+            {
+                SetProperty(ref _LoginTime, value);
+            }
+        } 
 
         public SettingModel Read()
         {
@@ -149,6 +160,7 @@ namespace cpu_net.Model
             userSettingData.IsAutoLogin = IsAutoLogin;
             userSettingData.IsAutoMin = IsAutoMin;
             userSettingData.IsSetLogin = IsSetLogin;
+            userSettingData.LoginTime = LoginTime;
             string jsonStr = JsonSerializer.Serialize<SettingModel>(userSettingData, new JsonSerializerOptions { WriteIndented = true });
             File.WriteAllText(_SettingDataPath, jsonStr);
         }

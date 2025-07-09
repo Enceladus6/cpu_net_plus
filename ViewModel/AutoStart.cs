@@ -48,7 +48,7 @@ namespace cpu_net.ViewModel
                 }
                 else if (shortcutPaths.Count < 1)//不存在则创建快捷方式
                 {
-                    CreateShortcut(systemStartPath, QuickName, appAllPath, "中吉售货机");
+                    CreateShortcut(systemStartPath, QuickName, appAllPath, "cpu_net");
                 }
             }
             else//开机不启动
