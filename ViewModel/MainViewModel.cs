@@ -77,7 +77,7 @@ namespace cpu_net.ViewModel
                 Directory.CreateDirectory("Log");
             }
             var logpath = @"Log\" + now.Year + "" + Month + ".log";
-            var _log = $"{DateTime.Now.ToString("M-d HH:mm")}  " + log + "\r\n";
+            var _log = $"{DateTime.Now.ToString("M-d HH:mm:ss")}  " + log + "\r\n";
             try
             {
                 //设置读写锁为写入模式独占资源，其他写入请求需要等待本次写入结束之后才能继续写入

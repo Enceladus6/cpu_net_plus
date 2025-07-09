@@ -23,6 +23,7 @@ namespace cpu_net
         Brush white;
         HomePage homePage = new HomePage();
         ConfigurationPage configurationPage = new ConfigurationPage();
+        private MainViewModel _vm = new MainViewModel();
         public MainWindow()
         {
             InitializeComponent();
@@ -54,12 +55,12 @@ namespace cpu_net
         {
             //Debug.WriteLine("action3");
             SettingModel settingData = new SettingModel();
-            int loginTime = 6 * 60 * 60 * 1000;
+            int loginTime = 1000;
             //Debug.WriteLine("action4");
             if (settingData.PathExist())
             {
                 settingData = settingData.Read();
-                loginTime = settingData.LoginTime * 60 * 60 * 1000;
+                loginTime = settingData.LoginTime * 1000;
             }
             timer = new Timer(LoginCheck, "", loginTime, loginTime);
             //timer = new Timer(LoginCheck, mainViewModel, 3000, 21600000);
@@ -67,11 +68,27 @@ namespace cpu_net
         }
         private void LoginCheck(object? ob)
         {
-            timer.Dispose();
-            loginCheck();
-            //Debug.WriteLine("tick1");
-            //Test();
-            TimerMain();
+            timer.Dispose(); // 销毁当前定时器
+
+            // 使用Ping检测网络连接状态
+            bool networkAvailable = false;
+            try
+            {
+                using (var ping = new System.Net.NetworkInformation.Ping())
+                {
+                    var reply = ping.Send("www.baidu.com", 1000); // Ping百度，超时1秒
+                    networkAvailable = reply?.Status == System.Net.NetworkInformation.IPStatus.Success;
+                }
+            }
+            catch { } // 任何异常视为断网
+
+            if (!networkAvailable)
+            {
+                loginCheck(); // 仅在断网时执行登录检查
+                _vm.Info("检测到网络断开连接，已尝试重连");
+            }
+
+            TimerMain(); // 重新启动定时器
         }
         /*
         private void Test()
@@ -125,14 +142,14 @@ namespace cpu_net
                     //mainViewModel.LoginOnline();
 
                     Action invokeAction = new Action(loginCheck);
-                    if (!this.Dispatcher.CheckAccess())
-                    {
-                        this.Dispatcher.BeginInvoke(DispatcherPriority.Send, invokeAction);
-                    }
-                    else
+                    if (this.Dispatcher.CheckAccess())
                     {
                         loginToast();
                         //homePage.LoginButton.Command.Execute(null);
+                    }
+                    else
+                    {
+                        this.Dispatcher.BeginInvoke(DispatcherPriority.Send, invokeAction);
                     }
 
                 }
@@ -146,7 +163,7 @@ namespace cpu_net
             //Debug.WriteLine(this.Visibility);
             if (a == 0 & this.Visibility == Visibility.Collapsed)
             {
-                Debug.WriteLine("toasttest");
+                // Debug.WriteLine("toasttest");
                 new ToastContentBuilder()
                     .AddText("登录失败")
                     .AddText("请检查网络设置")

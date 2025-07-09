@@ -22,7 +22,7 @@ namespace cpu_net.Model
         private bool _IsAutoLogin;
         private bool _IsAutoMin;
         private bool _IsSetLogin;
-        private int _LoginTime;
+        private int? _LoginTime;
         ///private string _ServerAddress;
 
         //SettingDataPath exist
@@ -132,7 +132,7 @@ namespace cpu_net.Model
         public int LoginTime
         {
             get {
-                return _LoginTime; 
+                return _LoginTime ?? 5; 
             }
             set
             {
@@ -142,9 +142,14 @@ namespace cpu_net.Model
 
         public SettingModel Read()
         {
+
+            string jsonStr = File.ReadAllText(_SettingDataPath);
+            return JsonSerializer.Deserialize<SettingModel>(jsonStr) ?? new SettingModel();
+            /*
             string jsonStr = File.ReadAllText(_SettingDataPath);
             SettingModel? userSettingData = JsonSerializer.Deserialize<SettingModel>(jsonStr);
             return userSettingData;
+            */
         }
 
         public void Save()

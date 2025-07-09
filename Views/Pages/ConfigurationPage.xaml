@@ -76,7 +76,7 @@
                                 <CheckBox Name="AutoRun" IsChecked="{Binding Path=IsAutoRun,Source={StaticResource userVM}}">开机启动</CheckBox>
                                 <CheckBox Name="AutoLogin" IsChecked="{Binding Path=IsAutoLogin,Source={StaticResource userVM}}">自动登录</CheckBox>
                                 <CheckBox Name="AutoMin" IsChecked="{Binding Path=IsAutoMin,Source={StaticResource userVM}}">自动最小化</CheckBox>
-                                <CheckBox Name="SetLogin" IsChecked="{Binding Path=IsSetLogin,Source={StaticResource userVM}}">定时登录</CheckBox>
+                                <CheckBox Name="SetLogin" IsChecked="{Binding Path=IsSetLogin,Source={StaticResource userVM}}">定时检测</CheckBox>
                             </StackPanel>
                         </Grid>
                     </Grid>
@@ -113,7 +113,7 @@
                             </Grid.ColumnDefinitions>
                             <TextBox Grid.Row="0" Grid.Column="0" Text="定时时长:" Background="White" BorderThickness="0" FontSize="15" IsReadOnly="True" VerticalAlignment="Center" />
                             <TextBox Grid.Row="0" Grid.Column="1" Name="loginTime" Width="75" Height="25" FontSize="15" PreviewTextInput="Code_PreviewTextInput" InputMethod.IsInputMethodEnabled="False" Text="{Binding Path=LoginTime, Source={StaticResource userVM}}"/>
-                            <TextBox Grid.Row="0" Grid.Column="2" Text="小时" Background="White" BorderThickness="0" FontSize="15" IsReadOnly="True" VerticalAlignment="Center" />
+                            <TextBox Grid.Row="0" Grid.Column="2" Text="秒" Background="White" BorderThickness="0" FontSize="15" IsReadOnly="True" VerticalAlignment="Top" Margin="0,5,0,0" />
                         </Grid>
                     </Grid>
                     <TextBlock Grid.Row="1" Grid.ColumnSpan="2" HorizontalAlignment="Center" VerticalAlignment="Center" Block.TextAlignment="Center">
