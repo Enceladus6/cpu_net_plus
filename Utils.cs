@@ -13,9 +13,9 @@ namespace cpu_net
             {
                 Directory.CreateDirectory("ErrorLog");
             }
-            string Month,Day;
+            // string Month,Day;
             var now = DateTime.Now;
-            if (now.Month < 10)
+/*            if (now.Month < 10)
             {
                 Month = "0" + now.Month.ToString();
             }
@@ -31,7 +31,10 @@ namespace cpu_net
             {
                 Day = now.Day.ToString();
             }
-            var logpath = @"ErrorLog\" + now.Year + "" + Month + "" + Day + ".log";
+*/
+            string fileName = $"{now.Year}{now.Month:D2}{now.Day:D2}.log"; // 格式化为两位数月份
+            string logpath = Path.Combine("ErrorLog", fileName);
+            // var logpath = @"ErrorLog\" + now.Year + "" + Month + "" + Day + ".log";
             var log = "\r\n----------------------" + DateTime.Now + " --------------------------\r\n"
                       + ex.Message
                       + "\r\n"

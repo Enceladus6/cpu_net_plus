@@ -77,13 +77,19 @@ namespace cpu_net
                 using (var ping = new System.Net.NetworkInformation.Ping())
                 {
                     var reply = ping.Send("www.baidu.com", 1000); // Ping百度，超时1秒
+                    _vm.Record("正在检测网络");
                     networkAvailable = reply?.Status == System.Net.NetworkInformation.IPStatus.Success;
                 }
             }
             catch { } // 任何异常视为断网
 
-            if (!networkAvailable)
+            if (networkAvailable)
             {
+                _vm.Record("网络正常");
+            }
+            else
+            {
+                _vm.Record("网络异常");
                 loginCheck(); // 仅在断网时执行登录检查
                 _vm.Info("检测到网络断开连接，已尝试重连");
             }
@@ -157,8 +163,7 @@ namespace cpu_net
         }
         public void loginToast()
         {
-            MainViewModel mainViewModel = new MainViewModel();
-            int a = mainViewModel.LoginOnline();
+            int a = _vm.LoginOnline();
             //Debug.WriteLine("a="+a);
             //Debug.WriteLine(this.Visibility);
             if (a == 0 & this.Visibility == Visibility.Collapsed)

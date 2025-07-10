@@ -60,23 +60,16 @@ namespace cpu_net.ViewModel
         */
 
         private static readonly ReaderWriterLockSlim LogWriteLock = new ReaderWriterLockSlim();
-        public static void TextLog(string log)
+        public static void TextLog(string log, string LogName)
         {
-            string Month;
             var now = DateTime.Now;
-            if(now.Month < 10)
+
+            if (!Directory.Exists(LogName))
             {
-                Month = "0" + now.Month.ToString();
+                Directory.CreateDirectory(LogName);
             }
-            else
-            {
-                Month = now.Month.ToString();
-            }
-            if (!Directory.Exists("Log"))
-            {
-                Directory.CreateDirectory("Log");
-            }
-            var logpath = @"Log\" + now.Year + "" + Month + ".log";
+            string fileName = $"{now.Year}{now.Month:D2}.log"; // 格式化为两位数月份
+            string logpath = Path.Combine(LogName, fileName);
             var _log = $"{DateTime.Now.ToString("M-d HH:mm:ss")}  " + log + "\r\n";
             try
             {
@@ -91,20 +84,12 @@ namespace cpu_net.ViewModel
             }
         }
 
-        public static string ReadLog()
+        public static string ReadLog(string LogName)
         {
-            string Month;
             var now = DateTime.Now;
-            if (now.Month < 10)
-            {
-                Month = "0" + now.Month.ToString();
-            }
-            else
-            {
-                Month = now.Month.ToString();
-            }
             string fLog = "";
-            var logpath = @"Log\" + now.Year + "" + Month + "" + ".log";
+            string fileName = $"{now.Year}{now.Month:D2}.log"; // 格式化为两位数月份
+            string logpath = Path.Combine(LogName, fileName);
             if (File.Exists(logpath))
             {
 
@@ -127,13 +112,22 @@ namespace cpu_net.ViewModel
 
         public string TxtLog
         {
-            get { return ReadLog(); }
-            set { TextLog(value); OnPropertyChanged(); }
+            get { return ReadLog("Log"); }
+            set { TextLog(value, "Log"); OnPropertyChanged(); }
+        }
+        public string RecordLog
+        {
+            get { return ReadLog("RecordLog"); }
+            set { TextLog(value, "RecordLog"); OnPropertyChanged(); }
         }
 
         public void Info(string message)
         {
             TxtLog = message;
+        }
+        public void Record(string message)
+        {
+            RecordLog = message;
         }
 
         private RelayCommand noticeButton_Click;
@@ -186,10 +180,12 @@ namespace cpu_net.ViewModel
                     localIP = endPoint.Address.ToString();
                 }
                 Info($"当前IP为{localIP}");
+                Record($"当前IP为{localIP}");
             }
             catch
             {
                 Info("IP获取失败");
+                Record("IP获取失败");
             }
             return localIP;
         }
@@ -277,7 +273,8 @@ namespace cpu_net.ViewModel
                         }
                         catch (Exception e)
                         {
-                            //Info(e.Message);
+                            Record("Mode Case 0");
+                            Record(e.Message);
                             local_ip = _IP;
                         }
                         Login_url = $"{url_head}callback=dr1004&login_method=1&user_account=%2C0%2C{settingData.Username}%40{settingData.Carrier}" +
@@ -294,7 +291,8 @@ namespace cpu_net.ViewModel
                         }
                         catch (Exception e)
                         {
-                            //Info(e.Message);
+                            Record("Mode Case 1");
+                            Record(e.Message);
                             local_ip = _IP;
                         }
                         //Info(local_ip);
@@ -312,13 +310,15 @@ namespace cpu_net.ViewModel
                         }
                         catch (Exception e)
                         {
-                            //Info(e.Message);
+                            Record("Mode Case default");
+                            Record(e.Message);
                             local_ip = _IP;
                         }
                         Login_url = $"{url_head}callback=dr1004&login_method=1&user_account=%2C0%2C{settingData.Username}%40{settingData.Carrier}" +
                     $"&user_password={settingData.Password}&wlan_user_ip={local_ip}&wlan_user_ipv6=&wlan_user_mac=000000000000&wlan_ac_ip=&wlan_ac_name=&jsVersion=4.2.2&lang=zh-cn&v=9745&lang=zh";
                         break;
                 }
+                Record(Login_url);
                 try
                 {
                     //var _res = HttpRequestHelper.HttpGetRequest(Login_url).Replace(" ","");
@@ -327,6 +327,7 @@ namespace cpu_net.ViewModel
                     _res = HttpRequestHelper.HttpGetRequest(Login_url);
                     //Info(_res);
                     _res = _res.Replace("dr1004", "").Replace(" ", "");
+                    Record(_res);
                     //Info(_res);
                     //System.Diagnostics.Debug.WriteLine(_res);
                     var res = _res.Substring(1, _res.Length - 3);
@@ -367,15 +368,18 @@ namespace cpu_net.ViewModel
                 {
                     Info("登录失败");
                     Info(e.Message);
+                    Record(e.Message);
                     return 0;
                 }
-                catch (JsonException)
+                catch (JsonException e)
                 {
+                    Record(e.Message);
                     Info("JSON解析失败");
                     return 0;
                     //Info(_res);
                 }
                 catch(Exception e){
+                    Record(e.TargetSite + e.Message + e.StackTrace);
                     Info(e.TargetSite+e.Message+e.StackTrace);
                     Info("网络连接失败，请检查网络设置，如果使用路由器，请确认是否使用自动获取ip");
                     return 0;
