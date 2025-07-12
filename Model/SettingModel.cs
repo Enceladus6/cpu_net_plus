@@ -1,18 +1,22 @@
 ﻿using Prism.Mvvm;
 using System;
 using System.IO;
-using System.Text.Json;
+using YamlDotNet.Serialization.NamingConventions;
+using YamlDotNet.Serialization;
+using System.Reflection; // 用于 PropertyInfo
 
 namespace cpu_net.Model
 {
     public class SettingModel : BindableBase
     {
+        string DefaultTestUrl = "https://i.frostnova-sora.top/connecttest.txt";
+        string DefaultTestCode = "Sora connect test";
         public SettingModel()
         {
         }
 
         //配置文件路径
-        private readonly string _SettingDataPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Config.json");
+        private readonly string _SettingDataPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.yaml");
         private string _Password;
         private string _UserName;
         private string _Carrier;
@@ -23,6 +27,9 @@ namespace cpu_net.Model
         private bool _IsAutoMin;
         private bool _IsSetLogin;
         private int? _LoginTime;
+        private bool? _TestMode;
+        private string? _TestUrl;
+        private string? _TestCode;
         ///private string _ServerAddress;
 
         //SettingDataPath exist
@@ -138,36 +145,93 @@ namespace cpu_net.Model
             {
                 SetProperty(ref _LoginTime, value);
             }
-        } 
+        }
+        public bool TestMode
+        {
+            get
+            {
+                return _TestMode ?? false;
+            }
+            set
+            {
+                SetProperty(ref _TestMode, value);
+            }
+        }
+        public string TestUrl
+        {
+            get
+            {
+                return _TestUrl ?? DefaultTestUrl;
+            }
+            set
+            {
+                SetProperty(ref _TestUrl, value);
+            }
+        }
+        public string TestCode
+        {
+            get
+            {
+                return _TestCode ?? DefaultTestCode;
+            }
+            set
+            {
+                SetProperty(ref _TestCode, value);
+            }
+        }
 
         public SettingModel Read()
         {
+            string yamlStr = File.ReadAllText(_SettingDataPath);
+            var deserializer = new DeserializerBuilder()
+                .WithNamingConvention(PascalCaseNamingConvention.Instance) // 根据你的 YAML 文件命名约定选择，例如 PascalCaseNamingConvention 或 NullNamingConvention
+                .Build();
 
-            string jsonStr = File.ReadAllText(_SettingDataPath);
-            return JsonSerializer.Deserialize<SettingModel>(jsonStr) ?? new SettingModel();
-            /*
-            string jsonStr = File.ReadAllText(_SettingDataPath);
-            SettingModel? userSettingData = JsonSerializer.Deserialize<SettingModel>(jsonStr);
-            return userSettingData;
-            */
+            // 尝试反序列化，如果文件为空或格式错误，则返回新的 SettingModel 实例
+            try
+            {
+                return deserializer.Deserialize<SettingModel>(yamlStr);
+            }
+            catch (YamlDotNet.Core.YamlException)
+            {
+                // 处理文件可能为空或无效 YAML 的情况
+                return new SettingModel();
+            }
         }
 
         public void Save()
         {
-            SettingModel userSettingData = new SettingModel();
-            ///userSettingData.ServerAddress = ServerAddress;
-            userSettingData.Username = Username;
-            userSettingData.Carrier = Carrier;
-            userSettingData.Key = Key;
-            userSettingData.Mode = Mode;
-            userSettingData.Password = Password;
-            userSettingData.IsAutoRun = IsAutoRun;
-            userSettingData.IsAutoLogin = IsAutoLogin;
-            userSettingData.IsAutoMin = IsAutoMin;
-            userSettingData.IsSetLogin = IsSetLogin;
-            userSettingData.LoginTime = LoginTime;
-            string jsonStr = JsonSerializer.Serialize<SettingModel>(userSettingData, new JsonSerializerOptions { WriteIndented = true });
-            File.WriteAllText(_SettingDataPath, jsonStr);
+            SettingModel userSettingData = new SettingModel
+            {
+                // ServerAddress = ServerAddress, // 如果你希望保存 ServerAddress，需要在这里取消注释并确保有对应的属性
+                Username = Username,
+                Carrier = Carrier,
+                Key = Key,
+                Mode = Mode,
+                Password = Password,
+                IsAutoRun = IsAutoRun,
+                IsAutoLogin = IsAutoLogin,
+                IsAutoMin = IsAutoMin,
+                IsSetLogin = IsSetLogin,
+                LoginTime = LoginTime,
+                TestMode = TestMode,
+                TestCode = TestCode,
+                TestUrl = TestUrl,
+            };
+            if (userSettingData.PathExist())
+            {
+                SettingModel data = userSettingData.Read();
+                userSettingData.TestMode = data.TestMode;
+                userSettingData.TestUrl = data.TestUrl;
+                userSettingData.TestCode = data.TestCode;
+            }
+
+            var serializer = new SerializerBuilder()
+                .WithNamingConvention(PascalCaseNamingConvention.Instance) // 保持命名约定一致
+                .Build();
+
+            string yamlStr = serializer.Serialize(userSettingData);
+            File.WriteAllText(_SettingDataPath, yamlStr);
         }
     }
 }

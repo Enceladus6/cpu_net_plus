@@ -4,7 +4,9 @@ using cpu_net.Views.Pages;
 using Microsoft.Toolkit.Uwp.Notifications;
 using System;
 using System.Diagnostics;
+using System.Net.Http;
 using System.Security.Permissions;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Forms;
 using System.Windows.Media;
@@ -66,22 +68,71 @@ namespace cpu_net
             //timer = new Timer(LoginCheck, mainViewModel, 3000, 21600000);
             //timer.Dispose();
         }
-        private void LoginCheck(object? ob)
+        private async void LoginCheck(object? ob)
         {
             timer.Dispose(); // 销毁当前定时器
-
-            // 使用Ping检测网络连接状态
+            SettingModel settingData = new SettingModel();
+            string test_url = "8.8.8.8";
+            string test_code = string.Empty;
+            if (settingData.PathExist())
+            {
+                settingData = settingData.Read();
+                test_url = settingData.TestUrl;
+                test_code = settingData.TestCode;
+            }
+            // 使用HttpClient检测网络连接状态
             bool networkAvailable = false;
+            string expectedContent = "Sora connect test"; // 预期的文件内容
             try
             {
-                using (var ping = new System.Net.NetworkInformation.Ping())
+                /*   using (var ping = new System.Net.NetworkInformation.Ping())
+                   {
+                       var reply = ping.Send("www.baidu.com", 1000); // Ping百度，超时1秒
+                       _vm.Record("正在检测网络");
+                       networkAvailable = reply?.Status == System.Net.NetworkInformation.IPStatus.Success;
+                   }*/
+                using (HttpClient client = new HttpClient())
                 {
-                    var reply = ping.Send("www.baidu.com", 1000); // Ping百度，超时1秒
-                    _vm.Record("正在检测网络");
-                    networkAvailable = reply?.Status == System.Net.NetworkInformation.IPStatus.Success;
+                    // 设置一个合理的超时时间，例如5秒
+                    client.Timeout = TimeSpan.FromSeconds(5);
+
+                    _vm.Record($"正在访问 {test_url} 进行网络检测");
+
+                    HttpResponseMessage response = await client.GetAsync(test_url);
+
+                    if (response.IsSuccessStatusCode) // 检查HTTP状态码是否为2xx成功
+                    {
+                        string content = await response.Content.ReadAsStringAsync();
+                        if (content.Trim() == test_code) // 比较文件内容，去除可能的空白字符
+                        {
+                            networkAvailable = true;
+                        }
+                        else
+                        {
+                            _vm.Record($"connecttest.txt 内容不匹配：'{content.Trim()}'");
+                        }
+                    }
+                    else
+                    {
+                        _vm.Record($"访问 {test_url} 失败，HTTP状态码：{response.StatusCode}");
+                    }
                 }
             }
-            catch { } // 任何异常视为断网
+            catch (HttpRequestException ex)
+            {
+                // 网络请求相关的异常（例如，DNS解析失败，连接超时等）
+                _vm.Record($"网络请求异常：{ex.Message}");
+            }
+            catch (TaskCanceledException ex) when (ex.InnerException is TimeoutException)
+            {
+                // HttpClient超时异常
+                _vm.Record($"网络连接超时：{ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                // 其他未知异常
+                _vm.Record($"检测过程中发生未知异常：{ex.Message}");
+            }
 
             if (networkAvailable)
             {

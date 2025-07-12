@@ -60,15 +60,26 @@ namespace cpu_net.ViewModel
         */
 
         private static readonly ReaderWriterLockSlim LogWriteLock = new ReaderWriterLockSlim();
-        public static void TextLog(string log, string LogName)
+        public void TextLog(string log, string LogName)
         {
             var now = DateTime.Now;
-
+            if (settingData.PathExist())
+            {
+                settingData.Read();
+            }
+            if (!settingData.TestMode & LogName == "RecordLog")
+            {
+                return;
+            }
             if (!Directory.Exists(LogName))
             {
                 Directory.CreateDirectory(LogName);
             }
             string fileName = $"{now.Year}{now.Month:D2}.log"; // 格式化为两位数月份
+            if (LogName == "RecordLog")
+            {
+                fileName = $"{now.Year}{now.Month:D2}{now.Day:D2}.log"; // 格式化为两位数月份
+            }
             string logpath = Path.Combine(LogName, fileName);
             var _log = $"{DateTime.Now.ToString("M-d HH:mm:ss")}  " + log + "\r\n";
             try
@@ -84,8 +95,8 @@ namespace cpu_net.ViewModel
             }
         }
 
-        public static string ReadLog(string LogName)
-        {
+        public string ReadLog(string LogName)
+        {   
             var now = DateTime.Now;
             string fLog = "";
             string fileName = $"{now.Year}{now.Month:D2}.log"; // 格式化为两位数月份
