@@ -4,7 +4,9 @@ using cpu_net.Views.Pages;
 using Microsoft.Toolkit.Uwp.Notifications;
 using System;
 using System.Diagnostics;
+using System.Net;
 using System.Net.Http;
+using System.Net.Sockets;
 using System.Security.Permissions;
 using System.Threading.Tasks;
 using System.Windows;
@@ -68,6 +70,25 @@ namespace cpu_net
             //timer = new Timer(LoginCheck, mainViewModel, 3000, 21600000);
             //timer.Dispose();
         }
+        public string GetIP()
+        {
+            string localIP = string.Empty;
+            try
+            {
+                using (Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, 0))
+                {
+                    socket.Connect("8.8.8.8", 65530);
+                    IPEndPoint endPoint = socket.LocalEndPoint as IPEndPoint;
+                    localIP = endPoint.Address.ToString();
+                }
+                _vm.Record($"重连中，当前IP为{localIP}");
+            }
+            catch
+            {
+                _vm.Record("重连中，IP获取失败，请检查网络连接");
+            }
+            return localIP;
+        }
         private async void LoginCheck(object? ob)
         {
             timer.Dispose(); // 销毁当前定时器
@@ -122,6 +143,10 @@ namespace cpu_net
             {
                 // 网络请求相关的异常（例如，DNS解析失败，连接超时等）
                 _vm.Record($"网络请求异常：{ex.Message}");
+                if (ex.InnerException != null)
+                { 
+                    _vm.Record(ex.InnerException.Message); 
+                }
             }
             catch (TaskCanceledException ex) when (ex.InnerException is TimeoutException)
             {
@@ -141,8 +166,46 @@ namespace cpu_net
             else
             {
                 _vm.Record("网络异常");
-                loginCheck(); // 仅在断网时执行登录检查
-                _vm.Info("检测到网络断开连接，已尝试重连");
+                var _IP = GetIP();
+                if (String.IsNullOrEmpty(_IP))
+                {
+                    _vm.Record("请检查网络连接后重试");
+                    return;
+                }
+                settingData = settingData.Read();
+                int _mode = 0;
+                switch (settingData.Mode)
+                {
+                    case 0:
+                        _mode = settingData.Mode;
+                        break;
+                    case 1:
+                        _mode = settingData.Mode;
+                        break;
+                    case 2:
+                        string[] _ip = _IP.Split('.');
+                        if (_ip[0] == "10" & _ip[1] == "7")
+                        {
+                            _mode = 1;
+                            _vm.Record("重连中，自动识别为CPU环境");
+                        }
+                        else if (_ip[0] == "10" & _ip[1] == "4")
+                        {
+                            _mode = 1;
+                            _vm.Info("重连中，自动识别为CPU环境");
+                        }
+                        else
+                        {
+                            _mode = 0;
+                            _vm.Info("重连中，自动识别为宽带环境");
+                        }
+                        break;
+                }
+                if (_mode == 0) {
+                    loginCheck(); // 仅在断网时执行登录检查
+                    _vm.Info("检测到网络断开连接，已尝试重连");
+                }
+                
             }
 
             TimerMain(); // 重新启动定时器

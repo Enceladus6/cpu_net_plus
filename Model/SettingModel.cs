@@ -9,8 +9,8 @@ namespace cpu_net.Model
 {
     public class SettingModel : BindableBase
     {
-        string DefaultTestUrl = "https://i.frostnova-sora.top/connecttest.txt";
-        string DefaultTestCode = "Sora connect test";
+        string DefaultTestUrl = "http://www.msftconnecttest.com/connecttest.txt";
+        string DefaultTestCode = "Microsoft Connect Test";
         public SettingModel()
         {
         }
