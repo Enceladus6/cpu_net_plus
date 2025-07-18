@@ -194,6 +194,11 @@ namespace cpu_net
                             _mode = 1;
                             _vm.Info("重连中，自动识别为CPU环境");
                         }
+                        else if (_ip[0] == "10" & _ip[1] == "3")
+                        {
+                            _mode = 1;
+                            _vm.Info("重连中，自动识别为CPU环境");
+                        }
                         else
                         {
                             _mode = 0;

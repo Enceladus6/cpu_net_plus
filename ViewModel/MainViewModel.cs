@@ -258,6 +258,11 @@ namespace cpu_net.ViewModel
                             _mode = 1;
                             Info("自动识别为CPU环境");
                         }
+                        else if (_ip[0] == "10" & _ip[1] == "3")
+                        {
+                            _mode = 1;
+                            Info("自动识别为CPU环境");
+                        }
                         else
                         {
                             _mode = 0;
@@ -307,7 +312,7 @@ namespace cpu_net.ViewModel
                             local_ip = _IP;
                         }
                         //Info(local_ip);
-                        Login_url = $"http://192.168.199.21:801/eportal/?c=Portal&a=login&callback=dr1004&login_method=1&user_account=%2C1%2C{settingData.Username}&user_password={settingData.Password}" +
+                        Login_url = $"http://192.168.199.21:801/eportal/?c=Portal&a=login&callback=dr1004&login_method=1&user_account=%2C0%2C{settingData.Username}&user_password={settingData.Password}" +
                             $"&wlan_user_ip={local_ip}&wlan_user_ipv6=&wlan_user_mac=000000000000&wlan_ac_ip=&wlan_ac_name=&jsVersion=3.3.3&v=1954";
                         break;
                     default:
