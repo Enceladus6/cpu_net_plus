@@ -22,10 +22,10 @@ namespace cpu_net.Model
         private string _Carrier;
         private int _Key;
         private int _Mode = 0;
-        private bool _IsAutoRun;
-        private bool _IsAutoLogin;
-        private bool _IsAutoMin;
-        private bool _IsSetLogin;
+        private bool? _IsAutoRun;
+        private bool? _IsAutoLogin;
+        private bool? _IsAutoMin;
+        private bool? _IsSetLogin;
         private int? _LoginTime;
         private bool? _TestMode;
         private string? _TestUrl;
@@ -106,7 +106,7 @@ namespace cpu_net.Model
         /// </summary>
         public bool IsAutoRun
         {
-            get { return _IsAutoRun; }
+            get { return _IsAutoRun ?? false; }
             set
             {
                 SetProperty(ref _IsAutoRun, value);
@@ -114,7 +114,7 @@ namespace cpu_net.Model
         }
         public bool IsAutoLogin
         {
-            get { return _IsAutoLogin; }
+            get { return _IsAutoLogin ?? false; }
             set
             {
                 SetProperty(ref _IsAutoLogin, value);
@@ -122,7 +122,7 @@ namespace cpu_net.Model
         }
         public bool IsAutoMin
         {
-            get { return _IsAutoMin; }
+            get { return _IsAutoMin ?? false; }
             set
             {
                 SetProperty(ref _IsAutoMin, value);
@@ -130,7 +130,7 @@ namespace cpu_net.Model
         }
         public bool IsSetLogin
         {
-            get { return _IsSetLogin; }
+            get { return _IsSetLogin ?? false; }
             set
             {
                 SetProperty(ref _IsSetLogin, value);
@@ -182,6 +182,12 @@ namespace cpu_net.Model
 
         public SettingModel Read()
         {
+            // Check if the file exists before attempting to read it
+            if (!File.Exists(_SettingDataPath))
+            {
+                // If the file doesn't exist, return a new default SettingModel instance
+                return new SettingModel();
+            }
             string yamlStr = File.ReadAllText(_SettingDataPath);
             var deserializer = new DeserializerBuilder()
                 .WithNamingConvention(PascalCaseNamingConvention.Instance) // 根据你的 YAML 文件命名约定选择，例如 PascalCaseNamingConvention 或 NullNamingConvention

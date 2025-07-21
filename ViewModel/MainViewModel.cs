@@ -248,25 +248,15 @@ namespace cpu_net.ViewModel
                         break;
                     case 2:
                         string[] _ip = _IP.Split('.');
-                        if (_ip[0] == "10" & _ip[1] == "7")
-                        {
-                            _mode = 1;
-                            Info("自动识别为CPU环境");
-                        }
-                        else if (_ip[0] == "10" & _ip[1] == "4")
-                        {
-                            _mode = 1;
-                            Info("自动识别为CPU环境");
-                        }
-                        else if (_ip[0] == "10" & _ip[1] == "3")
-                        {
-                            _mode = 1;
-                            Info("自动识别为CPU环境");
-                        }
-                        else
+                        if (_ip[0] == "10" & _ip[1] == "12")
                         {
                             _mode = 0;
                             Info("自动识别为宽带环境");
+                        }
+                        else
+                        {
+                            _mode = 1;
+                            Info("自动识别为CPU环境");
                         }
                         break;
                 }

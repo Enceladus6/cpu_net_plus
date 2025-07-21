@@ -184,25 +184,15 @@ namespace cpu_net
                         break;
                     case 2:
                         string[] _ip = _IP.Split('.');
-                        if (_ip[0] == "10" & _ip[1] == "7")
+                        if (_ip[0] == "10" & _ip[1] == "12")
                         {
-                            _mode = 1;
-                            _vm.Record("重连中，自动识别为CPU环境");
-                        }
-                        else if (_ip[0] == "10" & _ip[1] == "4")
-                        {
-                            _mode = 1;
-                            _vm.Info("重连中，自动识别为CPU环境");
-                        }
-                        else if (_ip[0] == "10" & _ip[1] == "3")
-                        {
-                            _mode = 1;
-                            _vm.Info("重连中，自动识别为CPU环境");
+                            _mode = 0;
+                            _vm.Record("重连中，自动识别为宽带环境");
                         }
                         else
                         {
-                            _mode = 0;
-                            _vm.Info("重连中，自动识别为宽带环境");
+                            _mode = 1;
+                            _vm.Info("重连中，自动识别为CPU环境");
                         }
                         break;
                 }
