@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.Net;
 using System.Net.Http;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
 using System.Security.Permissions;
 using System.Threading.Tasks;
 using System.Windows;
@@ -22,6 +23,17 @@ namespace cpu_net
     /// </summary>
     public partial class MainWindow : Window
     {
+        [DllImport("kernel32.dll")]
+        static extern EXECUTION_STATE SetThreadExecutionState(EXECUTION_STATE esFlags);
+
+        [Flags]
+        enum EXECUTION_STATE : uint
+        {
+            ES_AWAYMODE_REQUIRED = 0x00000040,
+            ES_CONTINUOUS = 0x80000000,
+            ES_DISPLAY_REQUIRED = 0x00000002,
+            ES_SYSTEM_REQUIRED = 0x00000001
+        }
         BrushConverter brushConverter = new BrushConverter();
         Brush darkblue;
         Brush white;
@@ -31,6 +43,7 @@ namespace cpu_net
         public MainWindow()
         {
             InitializeComponent();
+            PreventSleep();
             homePage.ParentWindow = this;
             configurationPage.ParentWindow = this;
             ChangePage("home");
@@ -221,6 +234,21 @@ namespace cpu_net
             }
         }
         */
+        private void PreventSleep()
+        {
+            // 阻止系统休眠和关闭显示器
+            SetThreadExecutionState(
+                EXECUTION_STATE.ES_CONTINUOUS |
+                EXECUTION_STATE.ES_SYSTEM_REQUIRED |
+                EXECUTION_STATE.ES_DISPLAY_REQUIRED
+            );
+        }
+
+        private void AllowSleep()
+        {
+            // 恢复系统正常休眠
+            SetThreadExecutionState(EXECUTION_STATE.ES_CONTINUOUS);
+        }
         private void ChangePage(string name)
         {
             darkblue = (Brush)brushConverter.ConvertFrom("DarkBlue");
@@ -354,6 +382,11 @@ namespace cpu_net
         private void Conf_Button_Click(object sender, RoutedEventArgs e)
         {
             ChangePage("conf");
+        }
+        protected override void OnClosed(EventArgs e)
+        {
+            AllowSleep(); // 窗口关闭时恢复休眠
+            base.OnClosed(e);
         }
     }
 }
