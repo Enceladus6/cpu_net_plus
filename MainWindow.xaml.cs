@@ -104,27 +104,23 @@ namespace cpu_net
         }
         private async void LoginCheck(object? ob)
         {
-            timer.Dispose(); // 销毁当前定时器
             SettingModel settingData = new SettingModel();
             string test_url = "8.8.8.8";
             string test_code = string.Empty;
             if (settingData.PathExist())
             {
                 settingData = settingData.Read();
+                if (!settingData.IsSetLogin)
+                {
+                    return;
+                }
                 test_url = settingData.TestUrl;
                 test_code = settingData.TestCode;
             }
             // 使用HttpClient检测网络连接状态
             bool networkAvailable = false;
-            string expectedContent = "Sora connect test"; // 预期的文件内容
             try
             {
-                /*   using (var ping = new System.Net.NetworkInformation.Ping())
-                   {
-                       var reply = ping.Send("www.baidu.com", 1000); // Ping百度，超时1秒
-                       _vm.Record("正在检测网络");
-                       networkAvailable = reply?.Status == System.Net.NetworkInformation.IPStatus.Success;
-                   }*/
                 using (HttpClient client = new HttpClient())
                 {
                     // 设置一个合理的超时时间，例如5秒
@@ -205,18 +201,16 @@ namespace cpu_net
                         else
                         {
                             _mode = 1;
-                            _vm.Info("重连中，自动识别为CPU环境");
+                            _vm.Record("重连中，自动识别为CPU环境");
                         }
                         break;
                 }
                 if (_mode == 0) {
                     loginCheck(); // 仅在断网时执行登录检查
-                    _vm.Info("检测到网络断开连接，已尝试重连");
+                    _vm.Record("检测到网络断开连接，已尝试重连");
                 }
                 
             }
-
-            TimerMain(); // 重新启动定时器
         }
         /*
         private void Test()

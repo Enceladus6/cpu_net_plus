@@ -30,35 +30,6 @@ namespace cpu_net.ViewModel
         {
         }
 
-        /*
-        private Timer timer;
-
-        public void TimerMain()
-        {
-            //Debug.WriteLine("action3");
-            //timer = new Timer(LoginCheck, "", 21600000, 21600000);
-            timer = new Timer(LoginCheck, "", 3000, 21600000);
-            //timer.Dispose();
-        }
-
-        private void LoginCheck(object? ob)
-        {
-            timer.Dispose();
-            //Debug.WriteLine("action4");
-            if (settingData.PathExist())
-            {
-                settingData = settingData.Read();
-                if (settingData.IsSetLogin)
-                {
-                    Debug.WriteLine("count");
-                    LoginOnline();
-                    //homePage.LoginButton.Command.Execute(null);
-                }
-            }
-            TimerMain();
-        }
-        */
-
         private static readonly ReaderWriterLockSlim LogWriteLock = new ReaderWriterLockSlim();
         public void TextLog(string log, string LogName)
         {
