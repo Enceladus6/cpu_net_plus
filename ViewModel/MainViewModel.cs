@@ -224,6 +224,16 @@ namespace cpu_net.ViewModel
                             _mode = 0;
                             Info("自动识别为宽带环境");
                         }
+                        else if (_ip[0] == "10" & _ip[1] == "31")
+                        {
+                            _mode = 0;
+                            Info("自动识别为宽带环境");
+                        }
+                        else if (_ip[0] == "192")
+                        {
+                            _mode = 0;
+                            Info("自动识别为宽带环境");
+                        }
                         else
                         {
                             _mode = 1;
