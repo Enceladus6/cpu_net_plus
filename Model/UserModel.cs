@@ -44,5 +44,11 @@ namespace cpu_net.Model
             get { return _isSetLogin; }
             set { _isSetLogin = value; OnPropertyChanged(); }
         }
+        private int _loginTime;
+        public int LoginTime
+        {
+            get { return _loginTime; }
+            set { _loginTime = value; OnPropertyChanged(); }
+        }
     }
 }

@@ -15,11 +15,13 @@ using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Forms;
 using static System.Net.WebRequestMethods;
 using File = System.IO.File;
+using Timer = System.Threading.Timer;
 
 namespace cpu_net.ViewModel
 {
@@ -28,6 +30,103 @@ namespace cpu_net.ViewModel
         SettingModel settingData = new SettingModel();
         public MainViewModel()
         {
+            TimerMain();
+        }
+        private Timer timer;
+
+        public void TimerMain()
+        {
+            //Debug.WriteLine("action3");
+            SettingModel settingData = new SettingModel();
+            int loginTime = 1000;
+            //Debug.WriteLine("action4");
+            if (settingData.PathExist())
+            {
+                settingData = settingData.Read();
+                loginTime = settingData.LoginTime * 1000;
+            }
+            timer = new Timer(LoginCheck, "", loginTime, loginTime);
+            //timer = new Timer(LoginCheck, mainViewModel, 3000, 21600000);
+            //timer.Dispose();
+        }
+        private async void LoginCheck(object? ob)
+        {
+            SettingModel settingData = new SettingModel();
+            string test_url = "8.8.8.8";
+            string test_code = string.Empty;
+            bool _isSetLogin = false;
+            if (settingData.PathExist())
+            {
+                settingData = settingData.Read();
+                _isSetLogin = settingData.IsSetLogin;
+                test_url = settingData.TestUrl;
+                test_code = settingData.TestCode;
+            }
+            if (!_isSetLogin)
+            {
+                return;
+            }
+            // 使用HttpClient检测网络连接状态
+            bool networkAvailable = false;
+            try
+            {
+                using (HttpClient client = new HttpClient())
+                {
+                    // 设置一个合理的超时时间，例如5秒
+                    client.Timeout = TimeSpan.FromSeconds(5);
+
+                    Record($"正在访问 {test_url} 进行网络检测");
+
+                    HttpResponseMessage response = await client.GetAsync(test_url);
+
+                    if (response.IsSuccessStatusCode) // 检查HTTP状态码是否为2xx成功
+                    {
+                        string content = await response.Content.ReadAsStringAsync();
+                        if (content.Trim() == test_code) // 比较文件内容，去除可能的空白字符
+                        {
+                            networkAvailable = true;
+                        }
+                        else
+                        {
+                            Record($"connecttest.txt 内容不匹配：'{content.Trim()}'");
+                        }
+                    }
+                    else
+                    {
+                        Record($"访问 {test_url} 失败，HTTP状态码：{response.StatusCode}");
+                    }
+                }
+            }
+            catch (HttpRequestException ex)
+            {
+                // 网络请求相关的异常（例如，DNS解析失败，连接超时等）
+                Record($"网络请求异常：{ex.Message}");
+                if (ex.InnerException != null)
+                {
+                    Record(ex.InnerException.Message);
+                }
+            }
+            catch (TaskCanceledException ex) when (ex.InnerException is TimeoutException)
+            {
+                // HttpClient超时异常
+                Record($"网络连接超时：{ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                // 其他未知异常
+                Record($"检测过程中发生未知异常：{ex.Message}");
+            }
+
+            if (networkAvailable)
+            {
+                Record("网络正常");
+            }
+            else
+            {
+                LoginOnline();
+                Record("检测到网络断开连接，已尝试重连");
+
+            }
         }
 
         private static readonly ReaderWriterLockSlim LogWriteLock = new ReaderWriterLockSlim();
@@ -431,6 +530,7 @@ namespace cpu_net.ViewModel
                 IsAutoMin = settingData.IsAutoMin;
                 IsSetLogin = settingData.IsSetLogin;
                 Mode = settingData.Mode;
+                LoginTime = settingData.LoginTime;
             }
         }
 
@@ -488,6 +588,13 @@ namespace cpu_net.ViewModel
             set { mode = value; settingData.Mode = mode; OnPropertyChanged(); }
         }
 
+        private int loginTime;
+        public int LoginTime
+        {
+            get { return loginTime; }
+            set { loginTime = value; settingData.LoginTime = loginTime; OnPropertyChanged(); }
+        }
+
         private RelayCommand pppButton_Click;
         public RelayCommand PppButton_Click
         {
@@ -541,111 +648,6 @@ namespace cpu_net.ViewModel
         {
             Mode = 2;
         }
-        /*
-        private Boolean pppChecked;
-        public Boolean PppChecked
-        {
-            get { return Mode == 0?true:false; }
-            set { pppChecked = value; cpuChecked = false; autoChecked = false; Mode = 0; settingData.Mode = Mode; OnPropertyChanged(); }
-        }
-
-        private Boolean cpuChecked;
-        public Boolean CpuChecked
-        {
-            get { return Mode == 1 ? true : false; }
-            set { cpuChecked = value; autoChecked = false; pppChecked = false; Mode = 1; settingData.Mode = Mode; OnPropertyChanged(); }
-        }
-
-        private Boolean autoChecked;
-        public Boolean AutoChecked
-        {
-            get { return Mode == 2 ? true : false; }
-            set { autoChecked = value; pppChecked = false; cpuChecked = false; Mode = 2; settingData.Mode = Mode; OnPropertyChanged(); }
-        }
-        */
-        /*
-        private RelayCommand saveButton_Click;
-        public RelayCommand SaveButton_Click
-        {
-            get
-            {
-                if (saveButton_Click == null)
-                    saveButton_Click = new RelayCommand(() => SaveAccount());
-                return saveButton_Click;
-            }
-            set { saveButton_Click = value; }
-        }
-        CarriersModel carrier = new CarriersModel();
-        string Text;
-        public void Receive(object recipient, string message)
-        {
-            Text = message;
-        }
-
-        private void SaveAccount()
-        {
-            int Key = 0;
-            string carrier = "";
-            switch (Text)
-            {
-                case "请选择运营商":
-                    Key = 0;
-                    carrier = "";
-                    break;
-                case "移动":
-                    Key = 1;
-                    carrier = "cmcc";
-                    break;
-                case "联通":
-                    Key = 2;
-                    carrier = "unicom";
-                    break;
-                case "电信":
-                    Key = 3;
-                    carrier = "telecom";
-                    break;
-            }
-            if (string.IsNullOrEmpty(Code) | string.IsNullOrEmpty(Password))
-            {
-                //MessageBox.Show("请输入学号和密码", "Attention");
-            }
-            else if (Key == 0 & Mode != 1)
-            {
-                //MessageBox.Show("请选择运营商", "Attention");
-            }
-            else
-            {
-                settingData.Username = Code;
-                settingData.Password = Password;
-                Debug.WriteLine(Password);
-                settingData.Carrier = carrier;
-                settingData.Key = Key;
-                settingData.Save();
-        */
-                //var result = MessageBox.Show("保存成功", "Info");
-                /*
-                if (result == MessageBoxResult.OK)
-                {
-                    HomeSelected();
-                }
-            }
-        }*/
-
-        /*
-        MainViewModel mainViewModel = new MainViewModel();
-        
-        private void HomeSelected()
-        {
-            Action invokeAction = new Action(HomeSelected);
-            if (!System.Windows.Application.Current.Dispatcher.CheckAccess())
-            {
-                System.Windows.Application.Current.Dispatcher.Invoke(DispatcherPriority.Send, invokeAction);
-            }
-            else
-            {
-                mainViewModel.HomeSel();
-            }
-        }*/
     }
 
     public class CarrierViewModel : ViewModelBase
