@@ -30,6 +30,7 @@ namespace cpu_net.ViewModel
         SettingModel settingData = new SettingModel();
         public MainViewModel()
         {
+            Debug.WriteLine("MainViewModel constructor called.");
             TimerMain();
         }
         private Timer timer;

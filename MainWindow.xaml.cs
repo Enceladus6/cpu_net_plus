@@ -37,19 +37,20 @@ namespace cpu_net
         BrushConverter brushConverter = new BrushConverter();
         Brush darkblue;
         Brush white;
-        HomePage homePage = new HomePage();
-        ConfigurationPage configurationPage = new ConfigurationPage();
+        private HomePage _cachedHomePage = new HomePage();
+        private ConfigurationPage _cachedConfigurationPage = new ConfigurationPage();
         private MainViewModel _vm = new MainViewModel();
         public MainWindow()
         {
             InitializeComponent();
             PreventSleep();
-            homePage.ParentWindow = this;
-            configurationPage.ParentWindow = this;
+            _cachedHomePage.ParentWindow = this;
+            _cachedConfigurationPage.ParentWindow = this;
             ChangePage("home");
             //Debug.WriteLine("action1");
-            
+
             //Debug.WriteLine("action2");
+            DataContext = _vm;
             SettingModel settingData = new SettingModel();
             if (settingData.PathExist())
             {
@@ -88,16 +89,22 @@ namespace cpu_net
                 case "home":
                     Home_Button.BorderBrush = darkblue;
                     Conf_Button.BorderBrush = white;
-                    var home = new HomePage();
-                    home.ParentWindow = this;
-                    PageFrame.Content = home;
+                    if (_cachedHomePage == null)
+                    {
+                        _cachedHomePage = new HomePage();
+                        _cachedHomePage.ParentWindow = this;
+                    }
+                    PageFrame.Content = _cachedHomePage;
                     break;
                 case "conf":
                     Home_Button.BorderBrush = white;
                     Conf_Button.BorderBrush = darkblue;
-                    var conf = new ConfigurationPage();
-                    conf.ParentWindow = this;
-                    PageFrame.Content = conf;
+                    if (_cachedConfigurationPage == null)
+                    {
+                        _cachedConfigurationPage = new ConfigurationPage();
+                        _cachedConfigurationPage.ParentWindow = this;
+                    }
+                    PageFrame.Content = _cachedConfigurationPage;
                     break;
             }
         }

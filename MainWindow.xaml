@@ -12,9 +12,6 @@
         StateChanged="Window_StateChanged"
         Title="CPU网络连接" Height="450" Width="600" TextBlock.TextAlignment="Center"
         MinHeight="450" MinWidth="600">
-    <Window.DataContext>
-        <vm:MainViewModel/>
-    </Window.DataContext>
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*"/>

@@ -41,7 +41,13 @@ namespace cpu_net.Views.Pages
         public HomePage()
         {
             InitializeComponent();
-  
+            this.Loaded += (s, e) =>
+            {
+                if (parentWindow != null)
+                {
+                    this.DataContext = parentWindow.DataContext;
+                }
+            };
             _httpClient = new HttpClient
             {
                 Timeout = TimeSpan.FromSeconds(5) // 设置超时时间
@@ -103,9 +109,6 @@ namespace cpu_net.Views.Pages
         }
         private void ToConf()
         {
-            //Debug.WriteLine("count");
-            //MainViewModel mainViewModel = new MainViewModel();
-            //mainViewModel.LoginOnline();
 
             Action invokeAction = new Action(ToConf);
             if (!this.Dispatcher.CheckAccess())
