@@ -9,6 +9,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Sockets;
@@ -76,7 +77,7 @@ namespace cpu_net.ViewModel
                     // 设置一个合理的超时时间，例如5秒
                     client.Timeout = TimeSpan.FromSeconds(5);
 
-                    Record($"正在访问 {test_url} 进行网络检测");
+                    // Record($"正在访问 {test_url} 进行网络检测");
 
                     HttpResponseMessage response = await client.GetAsync(test_url);
 
@@ -120,7 +121,7 @@ namespace cpu_net.ViewModel
 
             if (networkAvailable)
             {
-                Record("网络正常");
+                // Record("网络正常");
             }
             else
             {
@@ -178,7 +179,10 @@ namespace cpu_net.ViewModel
                 try
                 {
                     LogWriteLock.EnterReadLock();
-                    fLog = File.ReadAllText(logpath);
+                    // fLog = File.ReadAllText(logpath);
+                    var lines = File.ReadLines(logpath);
+                    var last10Lines = lines.Skip(Math.Max(0, lines.Count() - 10)).ToArray();
+                    fLog = string.Join(Environment.NewLine, last10Lines);
                 }
                 finally
                 {
@@ -325,6 +329,11 @@ namespace cpu_net.ViewModel
                             Info("自动识别为宽带环境");
                         }
                         else if (_ip[0] == "10" & _ip[1] == "31")
+                        {
+                            _mode = 0;
+                            Info("自动识别为宽带环境");
+                        }
+                        else if (_ip[0] == "10" & _ip[1] == "33")
                         {
                             _mode = 0;
                             Info("自动识别为宽带环境");
