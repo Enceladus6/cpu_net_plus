@@ -15,6 +15,7 @@ using System.Net.Http;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -139,7 +140,7 @@ namespace cpu_net.ViewModel
             {
                 settingData.Read();
             }
-            if (!settingData.TestMode & LogName == "RecordLog")
+            if (!settingData.TestMode && LogName == "RecordLog")
             {
                 return;
             }
@@ -323,17 +324,17 @@ namespace cpu_net.ViewModel
                         break;
                     case 2:
                         string[] _ip = _IP.Split('.');
-                        if (_ip[0] == "10" & _ip[1] == "12")
+                        if (_ip[0] == "10" && _ip[1] == "12")
                         {
                             _mode = 0;
                             Info("自动识别为宽带环境");
                         }
-                        else if (_ip[0] == "10" & _ip[1] == "31")
+                        else if (_ip[0] == "10" && _ip[1] == "31")
                         {
                             _mode = 0;
                             Info("自动识别为宽带环境");
                         }
-                        else if (_ip[0] == "10" & _ip[1] == "33")
+                        else if (_ip[0] == "10" && _ip[1] == "33")
                         {
                             _mode = 0;
                             Info("自动识别为宽带环境");
@@ -373,8 +374,8 @@ namespace cpu_net.ViewModel
                             Record(e.Message);
                             local_ip = _IP;
                         }
-                        Login_url = $"{url_head}callback=dr1004&login_method=1&user_account=%2C0%2C{settingData.Username}%40{settingData.Carrier}" +
-                    $"&user_password={settingData.Password}&wlan_user_ip={local_ip}&wlan_user_ipv6=&wlan_user_mac=000000000000&wlan_ac_ip=&wlan_ac_name=&jsVersion=4.2.2&terminal_type=1&lang=zh-cn&v=9745&lang=zh";
+                        Login_url = $"{url_head}callback=dr1004&login_method=1&user_account=%2C0%2C{WebUtility.UrlEncode(settingData.Username)}%40{WebUtility.UrlEncode(settingData.Carrier)}" +
+                    $"&user_password={WebUtility.UrlEncode(settingData.Password)}&wlan_user_ip={WebUtility.UrlEncode(local_ip)}&wlan_user_ipv6=&wlan_user_mac=000000000000&wlan_ac_ip=&wlan_ac_name=&jsVersion=4.2.2&terminal_type=1&lang=zh-cn&v=9745&lang=zh";
                         break;
                     case 1:
                         try
@@ -392,8 +393,8 @@ namespace cpu_net.ViewModel
                             local_ip = _IP;
                         }
                         //Info(local_ip);
-                        Login_url = $"http://192.168.199.21:801/eportal/?c=Portal&a=login&callback=dr1004&login_method=1&user_account=%2C0%2C{settingData.Username}&user_password={settingData.Password}" +
-                            $"&wlan_user_ip={local_ip}&wlan_user_ipv6=&wlan_user_mac=000000000000&wlan_ac_ip=&wlan_ac_name=&jsVersion=3.3.3&v=1954";
+                        Login_url = $"http://192.168.199.21:801/eportal/?c=Portal&a=login&callback=dr1004&login_method=1&user_account=%2C0%2C{WebUtility.UrlEncode(settingData.Username)}&user_password={WebUtility.UrlEncode(settingData.Password)}" +
+                            $"&wlan_user_ip={WebUtility.UrlEncode(local_ip)}&wlan_user_ipv6=&wlan_user_mac=000000000000&wlan_ac_ip=&wlan_ac_name=&jsVersion=3.3.3&v=1954";
                         break;
                     default:
                         try
@@ -410,11 +411,11 @@ namespace cpu_net.ViewModel
                             Record(e.Message);
                             local_ip = _IP;
                         }
-                        Login_url = $"{url_head}callback=dr1004&login_method=1&user_account=%2C0%2C{settingData.Username}%40{settingData.Carrier}" +
-                    $"&user_password={settingData.Password}&wlan_user_ip={local_ip}&wlan_user_ipv6=&wlan_user_mac=000000000000&wlan_ac_ip=&wlan_ac_name=&jsVersion=4.2.2&lang=zh-cn&v=9745&lang=zh";
+                        Login_url = $"{url_head}callback=dr1004&login_method=1&user_account=%2C0%2C{WebUtility.UrlEncode(settingData.Username)}%40{WebUtility.UrlEncode(settingData.Carrier)}" +
+                    $"&user_password={WebUtility.UrlEncode(settingData.Password)}&wlan_user_ip={WebUtility.UrlEncode(local_ip)}&wlan_user_ipv6=&wlan_user_mac=000000000000&wlan_ac_ip=&wlan_ac_name=&jsVersion=4.2.2&lang=zh-cn&v=9745&lang=zh";
                         break;
                 }
-                Record(Login_url);
+                Record(MaskSensitive(Login_url));
                 try
                 {
                     //var _res = HttpRequestHelper.HttpGetRequest(Login_url).Replace(" ","");
@@ -496,6 +497,16 @@ namespace cpu_net.ViewModel
                 */
             }
             return 0;
+        }
+
+        private static string MaskSensitive(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return text;
+            }
+
+            return Regex.Replace(text, @"(user_password=)([^&]*)", "$1***", RegexOptions.IgnoreCase);
         }
 
         private void NoticeOnline()
