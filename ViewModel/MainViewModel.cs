@@ -16,6 +16,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -36,6 +37,9 @@ namespace cpu_net.ViewModel
             TimerMain();
         }
         private Timer timer;
+        private int _consecutiveFailures;
+        private DateTime _nextAllowedLoginAt = DateTime.MinValue;
+        private DateTime _lastMaintenanceLogAt = DateTime.MinValue;
 
         public void TimerMain()
         {
@@ -123,11 +127,42 @@ namespace cpu_net.ViewModel
             if (networkAvailable)
             {
                 // Record("网络正常");
+                _consecutiveFailures = 0;
+                _nextAllowedLoginAt = DateTime.MinValue;
             }
             else
             {
-                LoginOnline();
-                Record("检测到网络断开连接，已尝试重连");
+                if (DateTime.Now < _nextAllowedLoginAt)
+                {
+                    return;
+                }
+
+                var currentIp = GetIP(false);
+                var mode = ResolveLoginMode(currentIp, settingData, false);
+                if (mode == 1 && IsInLabMaintenanceWindow(DateTime.Now, settingData))
+                {
+                    if ((DateTime.Now - _lastMaintenanceLogAt).TotalSeconds >= 60)
+                    {
+                        Record($"处于实验室维护窗口 {settingData.LabMaintenanceStart}-{settingData.LabMaintenanceEnd}，暂不重连");
+                        _lastMaintenanceLogAt = DateTime.Now;
+                    }
+                    return;
+                }
+
+                var loginResult = LoginOnline();
+                if (loginResult == 1)
+                {
+                    _consecutiveFailures = 0;
+                    _nextAllowedLoginAt = DateTime.MinValue;
+                    Record("检测到网络断开连接，已自动重连");
+                }
+                else
+                {
+                    _consecutiveFailures = Math.Min(_consecutiveFailures + 1, 8);
+                    var delaySeconds = Math.Min(1 << _consecutiveFailures, 300);
+                    _nextAllowedLoginAt = DateTime.Now.AddSeconds(delaySeconds);
+                    Record($"自动重连失败，将在 {delaySeconds} 秒后重试");
+                }
 
             }
         }
@@ -255,7 +290,7 @@ namespace cpu_net.ViewModel
             set { bindButton_Click = value; }
         }
 
-        public string GetIP()
+        public string GetIP(bool withLog = true)
         {
             string localIP = string.Empty;
             try
@@ -266,13 +301,19 @@ namespace cpu_net.ViewModel
                     IPEndPoint endPoint = socket.LocalEndPoint as IPEndPoint;
                     localIP = endPoint.Address.ToString();
                 }
-                Info($"当前IP为{localIP}");
-                Record($"当前IP为{localIP}");
+                if (withLog)
+                {
+                    Info($"当前IP为{localIP}");
+                    Record($"当前IP为{localIP}");
+                }
             }
             catch
             {
-                Info("IP获取失败");
-                Record("IP获取失败");
+                if (withLog)
+                {
+                    Info("IP获取失败");
+                    Record("IP获取失败");
+                }
             }
             return localIP;
         }
@@ -313,58 +354,24 @@ namespace cpu_net.ViewModel
                     return 0;
                 }
                 settingData = settingData.Read();
-                int _mode = 0;
-                switch (settingData.Mode)
-                {
-                    case 0:
-                        _mode = settingData.Mode;
-                        break;
-                    case 1:
-                        _mode = settingData.Mode;
-                        break;
-                    case 2:
-                        string[] _ip = _IP.Split('.');
-                        if (_ip[0] == "10" && _ip[1] == "12")
-                        {
-                            _mode = 0;
-                            Info("自动识别为宽带环境");
-                        }
-                        else if (_ip[0] == "10" && _ip[1] == "31")
-                        {
-                            _mode = 0;
-                            Info("自动识别为宽带环境");
-                        }
-                        else if (_ip[0] == "10" && _ip[1] == "33")
-                        {
-                            _mode = 0;
-                            Info("自动识别为宽带环境");
-                        }
-                        else if (_ip[0] == "192")
-                        {
-                            _mode = 0;
-                            Info("自动识别为宽带环境");
-                        }
-                        else
-                        {
-                            _mode = 1;
-                            Info("自动识别为CPU环境");
-                        }
-                        break;
-                }
+                int _mode = ResolveLoginMode(_IP, settingData, true);
                 string Login_url;
                 string _res = "";
                 string local_ip;
-                string url_head = "http://172.17.253.3:801/eportal/portal/login?";
-                string url_head_ssl = "https://172.17.253.3:802/eportal/portal/login?";
+                string url_head = settingData.SushePortalBaseUrl;
                 switch (_mode)
                 {
                     case 0:
                         
                         try
                         {
-                            string remote_url = "http://172.17.253.3/drcom/chkstatus?callback=dr1002";
+                            string remote_url = settingData.SusheStatusUrl;
                             string res_remo = HttpRequestHelper.HttpGetRequest(remote_url).Replace("dr1002", "").Replace(" ", "");
-                            var res = res_remo.Substring(1, res_remo.Length - 2);
+                            var res = ExtractJsonPayload(res_remo);
+                            if (string.IsNullOrEmpty(res))
+                            {
+                                throw new InvalidOperationException("宿舍状态接口返回空数据");
+                            }
                             var _obj = JsonSerializer.Deserialize<V46ip>(res)!;
                             local_ip = _obj.ss5;
                         }
@@ -380,9 +387,13 @@ namespace cpu_net.ViewModel
                     case 1:
                         try
                         {
-                            string remote_url = "http://192.168.199.21/drcom/chkstatus?callback=dr1002";
+                            string remote_url = settingData.LabStatusUrl;
                             string res_remo = HttpRequestHelper.HttpGetRequest(remote_url).Replace("dr1002", "").Replace(" ", "");
-                            var res = res_remo.Substring(1, res_remo.Length - 2);
+                            var res = ExtractJsonPayload(res_remo);
+                            if (string.IsNullOrEmpty(res))
+                            {
+                                throw new InvalidOperationException("实验室状态接口返回空数据");
+                            }
                             var _obj = JsonSerializer.Deserialize<V46ip>(res)!;
                             local_ip = _obj.ss5;
                         }
@@ -392,16 +403,19 @@ namespace cpu_net.ViewModel
                             Record(e.Message);
                             local_ip = _IP;
                         }
-                        //Info(local_ip);
-                        Login_url = $"http://192.168.199.21:801/eportal/?c=Portal&a=login&callback=dr1004&login_method=1&user_account=%2C0%2C{WebUtility.UrlEncode(settingData.Username)}&user_password={WebUtility.UrlEncode(settingData.Password)}" +
+                        Login_url = $"{settingData.LabPortalBaseUrl}&callback=dr1004&login_method=1&user_account=%2C0%2C{WebUtility.UrlEncode(settingData.Username)}&user_password={WebUtility.UrlEncode(settingData.Password)}" +
                             $"&wlan_user_ip={WebUtility.UrlEncode(local_ip)}&wlan_user_ipv6=&wlan_user_mac=000000000000&wlan_ac_ip=&wlan_ac_name=&jsVersion=3.3.3&v=1954";
                         break;
                     default:
                         try
                         {
-                            string remote_url = "http://172.17.253.3/drcom/chkstatus?callback=dr1002";
+                            string remote_url = settingData.SusheStatusUrl;
                             string res_remo = HttpRequestHelper.HttpGetRequest(remote_url).Replace("dr1002", "").Replace(" ", "");
-                            var res = res_remo.Substring(1, res_remo.Length - 2);
+                            var res = ExtractJsonPayload(res_remo);
+                            if (string.IsNullOrEmpty(res))
+                            {
+                                throw new InvalidOperationException("默认状态接口返回空数据");
+                            }
                             var _obj = JsonSerializer.Deserialize<V46ip>(res)!;
                             local_ip = _obj.ss5;
                         }
@@ -422,17 +436,13 @@ namespace cpu_net.ViewModel
                     //Info(Login_url);
 
                     _res = HttpRequestHelper.HttpGetRequest(Login_url);
-                    //Info(_res);
                     _res = _res.Replace("dr1004", "").Replace(" ", "");
                     Record(_res);
-                    //Info(_res);
-                    //System.Diagnostics.Debug.WriteLine(_res);
-                    var res = _res.Substring(1, _res.Length - 3);
-                    //Info(res);
-                    //System.Diagnostics.Debug.WriteLine(res);
-                    if (res == null)
+
+                    var res = ExtractJsonPayload(_res);
+                    if (string.IsNullOrEmpty(res))
                     {
-                        Info("网络错误");
+                        Info("网络错误或认证返回为空");
                         return 0;
                     }
 
@@ -455,7 +465,7 @@ namespace cpu_net.ViewModel
                                         return 0;
                                     case 2:
                                         Info("本设备已在线，请勿重复登录");
-                                        return 0;
+                                        return 1;
                                 }
                         }
                     }
@@ -497,6 +507,83 @@ namespace cpu_net.ViewModel
                 */
             }
             return 0;
+        }
+
+        private int ResolveLoginMode(string ip, SettingModel settingData, bool emitInfo)
+        {
+            var mode = settingData.Mode;
+            if (mode == 0 || mode == 1)
+            {
+                return mode;
+            }
+
+            if (string.IsNullOrWhiteSpace(ip))
+            {
+                return 1;
+            }
+
+            var segments = ip.Split('.');
+            if (segments.Length >= 2)
+            {
+                if ((segments[0] == "10" && (segments[1] == "12" || segments[1] == "31" || segments[1] == "33")) || segments[0] == "192")
+                {
+                    if (emitInfo)
+                    {
+                        Info("自动识别为宽带环境");
+                    }
+                    return 0;
+                }
+            }
+
+            if (emitInfo)
+            {
+                Info("自动识别为CPU环境");
+            }
+            return 1;
+        }
+
+        private bool IsInLabMaintenanceWindow(DateTime now, SettingModel settingData)
+        {
+            if (!settingData.EnableLabMaintenanceWindow)
+            {
+                return false;
+            }
+
+            if (!TimeSpan.TryParseExact(settingData.LabMaintenanceStart, @"hh\:mm", CultureInfo.InvariantCulture, out var start))
+            {
+                start = new TimeSpan(4, 0, 0);
+            }
+
+            if (!TimeSpan.TryParseExact(settingData.LabMaintenanceEnd, @"hh\:mm", CultureInfo.InvariantCulture, out var end))
+            {
+                end = new TimeSpan(4, 15, 0);
+            }
+
+            var nowTime = now.TimeOfDay;
+            if (start <= end)
+            {
+                return nowTime >= start && nowTime < end;
+            }
+
+            return nowTime >= start || nowTime < end;
+        }
+
+        private static string ExtractJsonPayload(string response)
+        {
+            if (string.IsNullOrWhiteSpace(response))
+            {
+                return string.Empty;
+            }
+
+            var trimmed = response.Trim();
+            var start = trimmed.IndexOf('(');
+            var end = trimmed.LastIndexOf(')');
+            if (start >= 0 && end > start)
+            {
+                return trimmed.Substring(start + 1, end - start - 1);
+            }
+
+            return trimmed;
         }
 
         private static string MaskSensitive(string text)

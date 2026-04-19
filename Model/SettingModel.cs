@@ -30,6 +30,13 @@ namespace cpu_net.Model
         private bool? _TestMode;
         private string? _TestUrl;
         private string? _TestCode;
+        private string? _SusheStatusUrl;
+        private string? _SushePortalBaseUrl;
+        private string? _LabStatusUrl;
+        private string? _LabPortalBaseUrl;
+        private bool? _EnableLabMaintenanceWindow;
+        private string? _LabMaintenanceStart;
+        private string? _LabMaintenanceEnd;
         ///private string _ServerAddress;
 
         //SettingDataPath exist
@@ -180,6 +187,69 @@ namespace cpu_net.Model
             }
         }
 
+        /// <summary>
+        /// 宿舍认证状态接口
+        /// </summary>
+        public string SusheStatusUrl
+        {
+            get { return _SusheStatusUrl ?? "http://172.17.253.3/drcom/chkstatus?callback=dr1002"; }
+            set { SetProperty(ref _SusheStatusUrl, value); }
+        }
+
+        /// <summary>
+        /// 宿舍认证登录接口前缀
+        /// </summary>
+        public string SushePortalBaseUrl
+        {
+            get { return _SushePortalBaseUrl ?? "http://172.17.253.3:801/eportal/portal/login?"; }
+            set { SetProperty(ref _SushePortalBaseUrl, value); }
+        }
+
+        /// <summary>
+        /// 实验室认证状态接口
+        /// </summary>
+        public string LabStatusUrl
+        {
+            get { return _LabStatusUrl ?? "http://192.168.199.21/drcom/chkstatus?callback=dr1002"; }
+            set { SetProperty(ref _LabStatusUrl, value); }
+        }
+
+        /// <summary>
+        /// 实验室认证登录接口前缀
+        /// </summary>
+        public string LabPortalBaseUrl
+        {
+            get { return _LabPortalBaseUrl ?? "http://192.168.199.21:801/eportal/?c=Portal&a=login"; }
+            set { SetProperty(ref _LabPortalBaseUrl, value); }
+        }
+
+        /// <summary>
+        /// 是否启用实验室断网维护窗口
+        /// </summary>
+        public bool EnableLabMaintenanceWindow
+        {
+            get { return _EnableLabMaintenanceWindow ?? true; }
+            set { SetProperty(ref _EnableLabMaintenanceWindow, value); }
+        }
+
+        /// <summary>
+        /// 实验室维护窗口起始时间（HH:mm）
+        /// </summary>
+        public string LabMaintenanceStart
+        {
+            get { return _LabMaintenanceStart ?? "04:00"; }
+            set { SetProperty(ref _LabMaintenanceStart, value); }
+        }
+
+        /// <summary>
+        /// 实验室维护窗口结束时间（HH:mm）
+        /// </summary>
+        public string LabMaintenanceEnd
+        {
+            get { return _LabMaintenanceEnd ?? "04:15"; }
+            set { SetProperty(ref _LabMaintenanceEnd, value); }
+        }
+
         public SettingModel Read()
         {
             // Check if the file exists before attempting to read it
@@ -223,6 +293,13 @@ namespace cpu_net.Model
                 TestMode = TestMode,
                 TestCode = TestCode,
                 TestUrl = TestUrl,
+                SusheStatusUrl = SusheStatusUrl,
+                SushePortalBaseUrl = SushePortalBaseUrl,
+                LabStatusUrl = LabStatusUrl,
+                LabPortalBaseUrl = LabPortalBaseUrl,
+                EnableLabMaintenanceWindow = EnableLabMaintenanceWindow,
+                LabMaintenanceStart = LabMaintenanceStart,
+                LabMaintenanceEnd = LabMaintenanceEnd,
             };
             if (userSettingData.PathExist())
             {
@@ -230,6 +307,13 @@ namespace cpu_net.Model
                 userSettingData.TestMode = data.TestMode;
                 userSettingData.TestUrl = data.TestUrl;
                 userSettingData.TestCode = data.TestCode;
+                userSettingData.SusheStatusUrl = data.SusheStatusUrl;
+                userSettingData.SushePortalBaseUrl = data.SushePortalBaseUrl;
+                userSettingData.LabStatusUrl = data.LabStatusUrl;
+                userSettingData.LabPortalBaseUrl = data.LabPortalBaseUrl;
+                userSettingData.EnableLabMaintenanceWindow = data.EnableLabMaintenanceWindow;
+                userSettingData.LabMaintenanceStart = data.LabMaintenanceStart;
+                userSettingData.LabMaintenanceEnd = data.LabMaintenanceEnd;
             }
 
             var serializer = new SerializerBuilder()
