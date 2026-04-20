@@ -1,0 +1,28 @@
+{
+  "username": "YOUR_STUDENT_ID",
+  "password": "YOUR_PASSWORD",
+  "callback": "dr1004",
+  "preferred_profile": "",
+  "profiles": [
+    {
+      "name": "sushe",
+      "portal_ip": "172.17.253.3",
+      "match_prefixes": [
+        "10.12.",
+        "10.31.",
+        "10.33."
+      ],
+      "maintenance_enabled": false
+    },
+    {
+      "name": "lab-p",
+      "portal_ip": "192.168.199.21",
+      "match_prefixes": [
+        "10.8."
+      ],
+      "maintenance_enabled": true,
+      "maintenance_start": "04:00",
+      "maintenance_end": "04:15"
+    }
+  ]
+}
