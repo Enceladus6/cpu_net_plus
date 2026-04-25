@@ -36,6 +36,7 @@ internal sealed class AgentContext : ApplicationContext
     private readonly NotifyIcon _icon;
     private readonly System.Windows.Forms.Timer _timer;
     private readonly AuthRunner _runner;
+    private MainForm _mainForm;
     private bool _running;
 
     public AgentContext()
@@ -48,6 +49,7 @@ internal sealed class AgentContext : ApplicationContext
         _icon.Text = "校园网自动登录";
         _icon.Visible = true;
         _icon.ContextMenuStrip = BuildMenu();
+        _icon.DoubleClick += delegate { ShowMainForm(); };
 
         _timer = new System.Windows.Forms.Timer();
         _timer.Interval = 5 * 60 * 1000;
@@ -60,13 +62,25 @@ internal sealed class AgentContext : ApplicationContext
     private ContextMenuStrip BuildMenu()
     {
         var menu = new ContextMenuStrip();
+        menu.Items.Add("打开主界面", null, delegate { ShowMainForm(); });
         menu.Items.Add("立即登录", null, delegate { RunOnce(true); });
-        menu.Items.Add("打开配置", null, delegate { OpenPath(_runner.ConfigPath); });
+        menu.Items.Add("编辑原始配置", null, delegate { OpenPath(_runner.ConfigPath); });
         menu.Items.Add("打开日志", null, delegate { OpenPath(_runner.LogPath); });
         menu.Items.Add("打开配置目录", null, delegate { Process.Start(_runner.AppDir); });
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add("退出", null, delegate { Exit(); });
         return menu;
+    }
+
+    private void ShowMainForm()
+    {
+        if (_mainForm == null || _mainForm.IsDisposed)
+        {
+            _mainForm = new MainForm(_runner, delegate { RunOnce(true); });
+        }
+        _mainForm.Show();
+        _mainForm.WindowState = FormWindowState.Normal;
+        _mainForm.Activate();
     }
 
     private void RunOnce(bool showBalloon)
@@ -314,6 +328,200 @@ maintenance_end=04:15
     }
 }
 
+internal sealed class MainForm : Form
+{
+    private readonly AuthRunner _runner;
+    private readonly Action _loginNow;
+    private readonly TextBox _username = new TextBox();
+    private readonly TextBox _password = new TextBox();
+    private readonly ComboBox _preferred = new ComboBox();
+    private readonly CheckBox _maintenance = new CheckBox();
+    private readonly TextBox _maintenanceStart = new TextBox();
+    private readonly TextBox _maintenanceEnd = new TextBox();
+    private readonly TextBox _status = new TextBox();
+    private readonly TextBox _log = new TextBox();
+    private readonly Label _configPath = new Label();
+
+    public MainForm(AuthRunner runner, Action loginNow)
+    {
+        _runner = runner;
+        _loginNow = loginNow;
+
+        Text = "校园网自动登录";
+        Width = 720;
+        Height = 500;
+        MinimumSize = new Size(640, 420);
+        StartPosition = FormStartPosition.CenterScreen;
+        Icon = SystemIcons.Application;
+
+        var tabs = new TabControl { Dock = DockStyle.Fill };
+        tabs.TabPages.Add(BuildHomePage());
+        tabs.TabPages.Add(BuildSettingsPage());
+        Controls.Add(tabs);
+
+        Load += delegate
+        {
+            LoadConfigToUi();
+            RefreshLog();
+        };
+    }
+
+    private TabPage BuildHomePage()
+    {
+        var page = new TabPage("主页");
+        var root = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 3, Padding = new Padding(16) };
+        root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 58));
+        root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 42));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 80));
+        root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 52));
+
+        _status.Multiline = true;
+        _status.ReadOnly = true;
+        _status.BorderStyle = BorderStyle.FixedSingle;
+        _status.Text = "后台已启动。配置账号后可点击“立即登录”。";
+        root.SetColumnSpan(_status, 2);
+        root.Controls.Add(_status, 0, 0);
+
+        _log.Multiline = true;
+        _log.ReadOnly = true;
+        _log.ScrollBars = ScrollBars.Vertical;
+        root.SetColumnSpan(_log, 2);
+        root.Controls.Add(_log, 0, 1);
+
+        var loginButton = new Button { Text = "立即登录", Width = 120, Height = 34, Anchor = AnchorStyles.Left };
+        loginButton.Click += delegate
+        {
+            _loginNow();
+            RefreshLog();
+            _status.Text = "已触发登录。结果请查看日志。";
+        };
+        var refreshButton = new Button { Text = "刷新日志", Width = 120, Height = 34, Anchor = AnchorStyles.Left };
+        refreshButton.Click += delegate { RefreshLog(); };
+
+        var buttons = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.LeftToRight };
+        buttons.Controls.Add(loginButton);
+        buttons.Controls.Add(refreshButton);
+        root.SetColumnSpan(buttons, 2);
+        root.Controls.Add(buttons, 0, 2);
+
+        page.Controls.Add(root);
+        return page;
+    }
+
+    private TabPage BuildSettingsPage()
+    {
+        var page = new TabPage("设置");
+        var root = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 8, Padding = new Padding(28) };
+        root.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 120));
+        root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        for (int i = 0; i < 7; i++) root.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
+        root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+
+        AddLabel(root, "学号", 0);
+        root.Controls.Add(_username, 1, 0);
+        AddLabel(root, "密码", 1);
+        _password.PasswordChar = '*';
+        root.Controls.Add(_password, 1, 1);
+        AddLabel(root, "优先场景", 2);
+        _preferred.DropDownStyle = ComboBoxStyle.DropDownList;
+        root.Controls.Add(_preferred, 1, 2);
+
+        AddLabel(root, "维护窗口", 3);
+        _maintenance.Text = "实验室 04:00-04:15 暂停重连";
+        root.Controls.Add(_maintenance, 1, 3);
+        AddLabel(root, "开始时间", 4);
+        root.Controls.Add(_maintenanceStart, 1, 4);
+        AddLabel(root, "结束时间", 5);
+        root.Controls.Add(_maintenanceEnd, 1, 5);
+
+        var buttons = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.LeftToRight };
+        var save = new Button { Text = "保存", Width = 100, Height = 32 };
+        save.Click += delegate { SaveUiToConfig(); };
+        var openRaw = new Button { Text = "高级配置", Width = 100, Height = 32 };
+        openRaw.Click += delegate { Process.Start(new ProcessStartInfo(_runner.ConfigPath) { UseShellExecute = true }); };
+        buttons.Controls.Add(save);
+        buttons.Controls.Add(openRaw);
+        root.SetColumnSpan(buttons, 2);
+        root.Controls.Add(buttons, 0, 6);
+
+        _configPath.AutoSize = false;
+        _configPath.Dock = DockStyle.Fill;
+        _configPath.TextAlign = ContentAlignment.BottomLeft;
+        root.SetColumnSpan(_configPath, 2);
+        root.Controls.Add(_configPath, 0, 7);
+
+        page.Controls.Add(root);
+        return page;
+    }
+
+    private static void AddLabel(TableLayoutPanel root, string text, int row)
+    {
+        root.Controls.Add(new Label { Text = text + ":", Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleRight }, 0, row);
+    }
+
+    private void LoadConfigToUi()
+    {
+        var cfg = Config.Load(_runner.ConfigPath);
+        _username.Text = cfg.Username;
+        _password.Text = cfg.Password;
+        _preferred.Items.Clear();
+        _preferred.Items.Add("");
+        foreach (Profile p in cfg.Profiles) _preferred.Items.Add(p.Name);
+        _preferred.SelectedItem = cfg.PreferredProfile;
+        if (_preferred.SelectedIndex < 0) _preferred.SelectedIndex = 0;
+
+        Profile lab = FindProfile(cfg, "lab-p");
+        if (lab != null)
+        {
+            _maintenance.Checked = lab.MaintenanceEnabled;
+            _maintenanceStart.Text = lab.MaintenanceStart;
+            _maintenanceEnd.Text = lab.MaintenanceEnd;
+        }
+        _configPath.Text = "配置文件：" + _runner.ConfigPath;
+    }
+
+    private void SaveUiToConfig()
+    {
+        var cfg = Config.Load(_runner.ConfigPath);
+        cfg.Username = _username.Text.Trim();
+        cfg.Password = _password.Text;
+        cfg.PreferredProfile = Convert.ToString(_preferred.SelectedItem) ?? "";
+        Profile lab = FindProfile(cfg, "lab-p");
+        if (lab != null)
+        {
+            lab.MaintenanceEnabled = _maintenance.Checked;
+            lab.MaintenanceStart = String.IsNullOrWhiteSpace(_maintenanceStart.Text) ? "04:00" : _maintenanceStart.Text.Trim();
+            lab.MaintenanceEnd = String.IsNullOrWhiteSpace(_maintenanceEnd.Text) ? "04:15" : _maintenanceEnd.Text.Trim();
+        }
+        cfg.Save(_runner.ConfigPath);
+        MessageBox.Show("配置已保存。", "校园网自动登录", MessageBoxButtons.OK, MessageBoxIcon.Information);
+    }
+
+    private void RefreshLog()
+    {
+        if (!File.Exists(_runner.LogPath))
+        {
+            _log.Text = "";
+            return;
+        }
+        string[] lines = File.ReadAllLines(_runner.LogPath);
+        int start = Math.Max(0, lines.Length - 80);
+        var tail = new List<string>();
+        for (int i = start; i < lines.Length; i++) tail.Add(lines[i]);
+        _log.Text = String.Join(Environment.NewLine, tail.ToArray());
+        _log.SelectionStart = _log.TextLength;
+        _log.ScrollToCaret();
+    }
+
+    private static Profile FindProfile(Config cfg, string name)
+    {
+        foreach (Profile p in cfg.Profiles)
+            if (String.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase)) return p;
+        return null;
+    }
+}
+
 internal sealed class Config
 {
     public string Username = "";
@@ -357,6 +565,29 @@ internal sealed class Config
             }
         }
         return cfg;
+    }
+
+    public void Save(string path)
+    {
+        var lines = new List<string>();
+        lines.Add("username=" + Username);
+        lines.Add("password=" + Password);
+        lines.Add("callback=" + Callback);
+        lines.Add("preferred_profile=" + PreferredProfile);
+        lines.Add("");
+
+        foreach (Profile p in Profiles)
+        {
+            lines.Add("[profile:" + p.Name + "]");
+            lines.Add("portal_ip=" + p.PortalIp);
+            lines.Add("match_prefixes=" + String.Join(",", p.MatchPrefixes.ToArray()));
+            lines.Add("maintenance_enabled=" + (p.MaintenanceEnabled ? "true" : "false"));
+            if (!String.IsNullOrWhiteSpace(p.MaintenanceStart)) lines.Add("maintenance_start=" + p.MaintenanceStart);
+            if (!String.IsNullOrWhiteSpace(p.MaintenanceEnd)) lines.Add("maintenance_end=" + p.MaintenanceEnd);
+            lines.Add("");
+        }
+
+        File.WriteAllLines(path, lines.ToArray());
     }
 }
 
