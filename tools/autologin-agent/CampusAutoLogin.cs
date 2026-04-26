@@ -52,8 +52,8 @@ internal sealed class AgentContext : ApplicationContext
         _icon.DoubleClick += delegate { ShowMainForm(); };
 
         _timer = new System.Windows.Forms.Timer();
-        _timer.Interval = 5 * 60 * 1000;
         _timer.Tick += delegate { RunOnce(false); };
+        ApplyTimerInterval();
         _timer.Start();
 
         ThreadPool.QueueUserWorkItem(delegate { RunOnce(true); });
@@ -76,11 +76,27 @@ internal sealed class AgentContext : ApplicationContext
     {
         if (_mainForm == null || _mainForm.IsDisposed)
         {
-            _mainForm = new MainForm(_runner, delegate { RunOnce(true); });
+            _mainForm = new MainForm(_runner, delegate { RunOnce(true); }, ApplyTimerInterval);
         }
         _mainForm.Show();
         _mainForm.WindowState = FormWindowState.Normal;
         _mainForm.Activate();
+    }
+
+    private void ApplyTimerInterval()
+    {
+        int minutes = 5;
+        try
+        {
+            minutes = Config.Load(_runner.ConfigPath).IntervalMinutes;
+        }
+        catch
+        {
+            minutes = 5;
+        }
+        if (minutes < 1) minutes = 1;
+        if (minutes > 1440) minutes = 1440;
+        _timer.Interval = minutes * 60 * 1000;
     }
 
     private void RunOnce(bool showBalloon)
@@ -147,6 +163,7 @@ internal sealed class AuthRunner
 password=YOUR_PASSWORD
 callback=dr1004
 preferred_profile=
+interval_minutes=5
 
 [profile:sushe]
 portal_ip=172.17.253.3
@@ -335,6 +352,7 @@ internal sealed class MainForm : Form
     private readonly TextBox _username = new TextBox();
     private readonly TextBox _password = new TextBox();
     private readonly ComboBox _preferred = new ComboBox();
+    private readonly NumericUpDown _intervalMinutes = new NumericUpDown();
     private readonly CheckBox _maintenance = new CheckBox();
     private readonly TextBox _maintenanceStart = new TextBox();
     private readonly TextBox _maintenanceEnd = new TextBox();
@@ -342,10 +360,13 @@ internal sealed class MainForm : Form
     private readonly TextBox _log = new TextBox();
     private readonly Label _configPath = new Label();
 
-    public MainForm(AuthRunner runner, Action loginNow)
+    private readonly Action _applyTimerInterval;
+
+    public MainForm(AuthRunner runner, Action loginNow, Action applyTimerInterval)
     {
         _runner = runner;
         _loginNow = loginNow;
+        _applyTimerInterval = applyTimerInterval;
 
         Text = "校园网自动登录";
         Width = 720;
@@ -379,6 +400,8 @@ internal sealed class MainForm : Form
         _status.Multiline = true;
         _status.ReadOnly = true;
         _status.BorderStyle = BorderStyle.FixedSingle;
+        _status.Dock = DockStyle.Fill;
+        _status.ScrollBars = ScrollBars.Vertical;
         _status.Text = "后台已启动。配置账号后可点击“立即登录”。";
         root.SetColumnSpan(_status, 2);
         root.Controls.Add(_status, 0, 0);
@@ -386,6 +409,8 @@ internal sealed class MainForm : Form
         _log.Multiline = true;
         _log.ReadOnly = true;
         _log.ScrollBars = ScrollBars.Vertical;
+        _log.Dock = DockStyle.Fill;
+        _log.WordWrap = false;
         root.SetColumnSpan(_log, 2);
         root.Controls.Add(_log, 0, 1);
 
@@ -412,28 +437,42 @@ internal sealed class MainForm : Form
     private TabPage BuildSettingsPage()
     {
         var page = new TabPage("设置");
-        var root = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 8, Padding = new Padding(28) };
+        var root = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 9, Padding = new Padding(28) };
         root.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 120));
         root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        for (int i = 0; i < 7; i++) root.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
+        for (int i = 0; i < 8; i++) root.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
         AddLabel(root, "学号", 0);
+        _username.Dock = DockStyle.Fill;
         root.Controls.Add(_username, 1, 0);
         AddLabel(root, "密码", 1);
         _password.PasswordChar = '*';
+        _password.Dock = DockStyle.Fill;
         root.Controls.Add(_password, 1, 1);
         AddLabel(root, "优先场景", 2);
         _preferred.DropDownStyle = ComboBoxStyle.DropDownList;
+        _preferred.Dock = DockStyle.Fill;
         root.Controls.Add(_preferred, 1, 2);
+        AddLabel(root, "重试间隔", 3);
+        var intervalPanel = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.LeftToRight, WrapContents = false };
+        _intervalMinutes.Minimum = 1;
+        _intervalMinutes.Maximum = 1440;
+        _intervalMinutes.Width = 90;
+        intervalPanel.Controls.Add(_intervalMinutes);
+        intervalPanel.Controls.Add(new Label { Text = "分钟", AutoSize = true, TextAlign = ContentAlignment.MiddleLeft, Padding = new Padding(6, 7, 0, 0) });
+        root.Controls.Add(intervalPanel, 1, 3);
 
-        AddLabel(root, "维护窗口", 3);
+        AddLabel(root, "维护窗口", 4);
         _maintenance.Text = "实验室 04:00-04:15 暂停重连";
-        root.Controls.Add(_maintenance, 1, 3);
-        AddLabel(root, "开始时间", 4);
-        root.Controls.Add(_maintenanceStart, 1, 4);
-        AddLabel(root, "结束时间", 5);
-        root.Controls.Add(_maintenanceEnd, 1, 5);
+        _maintenance.Dock = DockStyle.Fill;
+        root.Controls.Add(_maintenance, 1, 4);
+        AddLabel(root, "开始时间", 5);
+        _maintenanceStart.Dock = DockStyle.Fill;
+        root.Controls.Add(_maintenanceStart, 1, 5);
+        AddLabel(root, "结束时间", 6);
+        _maintenanceEnd.Dock = DockStyle.Fill;
+        root.Controls.Add(_maintenanceEnd, 1, 6);
 
         var buttons = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.LeftToRight };
         var save = new Button { Text = "保存", Width = 100, Height = 32 };
@@ -443,13 +482,13 @@ internal sealed class MainForm : Form
         buttons.Controls.Add(save);
         buttons.Controls.Add(openRaw);
         root.SetColumnSpan(buttons, 2);
-        root.Controls.Add(buttons, 0, 6);
+        root.Controls.Add(buttons, 0, 7);
 
         _configPath.AutoSize = false;
         _configPath.Dock = DockStyle.Fill;
         _configPath.TextAlign = ContentAlignment.BottomLeft;
         root.SetColumnSpan(_configPath, 2);
-        root.Controls.Add(_configPath, 0, 7);
+        root.Controls.Add(_configPath, 0, 8);
 
         page.Controls.Add(root);
         return page;
@@ -470,6 +509,7 @@ internal sealed class MainForm : Form
         foreach (Profile p in cfg.Profiles) _preferred.Items.Add(p.Name);
         _preferred.SelectedItem = cfg.PreferredProfile;
         if (_preferred.SelectedIndex < 0) _preferred.SelectedIndex = 0;
+        _intervalMinutes.Value = Math.Min(_intervalMinutes.Maximum, Math.Max(_intervalMinutes.Minimum, cfg.IntervalMinutes));
 
         Profile lab = FindProfile(cfg, "lab-p");
         if (lab != null)
@@ -487,6 +527,7 @@ internal sealed class MainForm : Form
         cfg.Username = _username.Text.Trim();
         cfg.Password = _password.Text;
         cfg.PreferredProfile = Convert.ToString(_preferred.SelectedItem) ?? "";
+        cfg.IntervalMinutes = Convert.ToInt32(_intervalMinutes.Value);
         Profile lab = FindProfile(cfg, "lab-p");
         if (lab != null)
         {
@@ -495,6 +536,7 @@ internal sealed class MainForm : Form
             lab.MaintenanceEnd = String.IsNullOrWhiteSpace(_maintenanceEnd.Text) ? "04:15" : _maintenanceEnd.Text.Trim();
         }
         cfg.Save(_runner.ConfigPath);
+        _applyTimerInterval();
         MessageBox.Show("配置已保存。", "校园网自动登录", MessageBoxButtons.OK, MessageBoxIcon.Information);
     }
 
@@ -528,6 +570,7 @@ internal sealed class Config
     public string Password = "";
     public string Callback = "dr1004";
     public string PreferredProfile = "";
+    public int IntervalMinutes = 5;
     public readonly List<Profile> Profiles = new List<Profile>();
 
     public static Config Load(string path)
@@ -554,6 +597,11 @@ internal sealed class Config
                 else if (key == "password") cfg.Password = value;
                 else if (key == "callback") cfg.Callback = value;
                 else if (key == "preferred_profile") cfg.PreferredProfile = value;
+                else if (key == "interval_minutes")
+                {
+                    int minutes;
+                    if (Int32.TryParse(value, out minutes)) cfg.IntervalMinutes = minutes;
+                }
             }
             else
             {
@@ -574,6 +622,7 @@ internal sealed class Config
         lines.Add("password=" + Password);
         lines.Add("callback=" + Callback);
         lines.Add("preferred_profile=" + PreferredProfile);
+        lines.Add("interval_minutes=" + IntervalMinutes);
         lines.Add("");
 
         foreach (Profile p in Profiles)

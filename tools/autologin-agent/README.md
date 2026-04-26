@@ -18,10 +18,10 @@ Output:
 
 1. Run `CampusAutoLogin.exe`.
 2. Double-click the tray icon or right-click `打开主界面`.
-3. Open `设置`, fill `学号` / `密码`, then click `保存`.
+3. Open `设置`, fill `学号` / `密码`, adjust retry interval if needed, then click `保存`.
 4. Open `主页` and click `立即登录`.
 
-The app stays in the tray and checks every 5 minutes.
+The app stays in the tray and checks at the configured interval. The default is 5 minutes.
 
 ## Config
 
